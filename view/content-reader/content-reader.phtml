@@ -1,0 +1,245 @@
+
+<script>  
+    window.onload = function () {
+    let vm = new Vue({
+        el: "#app",
+        components: {
+         zoomOnHover: zoomOnHover
+        },
+        data () {
+          return {
+            // 间距高度宽度等
+            marginGap: 20,
+            contentMinHeight: 350,
+            contentHeight: 0,
+            contentWidthBoundary: 800,
+            contentMinWidth: 400,
+            contentWidth: 0,
+            resizeDebounce: 500,
+            // 文本样式
+            fontSize: 20,
+            lineHeight: 2,
+            letterspacing: 1,
+            plineheight: 30,
+            // 加载状态
+            loading: false,
+            // 文本数据
+            maxLineCount: -1,
+            pageList: [],
+            // 阅读状态
+            page: 1, // 当前阅读页，永远比index大1
+            activePage: {},
+            anchor: {},
+            activeIndex: '1', // element UI
+            activeIndex2: '1', // element UI
+            item_author : current_item_author,
+            item_id : current_item_id,
+            item_title : current_item_title,
+            item_content : current_item_content,
+            item_page_no : current_item_page,
+            fit: 'none',
+            current_img: 0,
+            imgurl: item_img,
+            displayImg:true,
+            displayContent:true,
+            isCollapse: true,
+            loading: true,
+          }
+        },
+        computed: {
+          paragraphArr () {
+            let textObj = this.item_content
+            let lineheight = this.plineheight
+            let nertag = []
+            let pageArr = []
+            let wordsCount = 0
+            
+            for (let pidx in textObj) {
+              let pArr = textObj[pidx].split('\n')
+              // let pArr = this.text.split('\n')
+              let paragraphArr = []
+              let contentLength = 0
+              pArr.forEach(function (paragraph, idx) {
+                let content = paragraph.trim()
+                contentLength = content.length
+                // 为每个字添加index定位信息
+                // 加入TAG資訊
+                if (nertag.length > 0) {
+                  content = content.split('').map((word, index) => getHtmlString('span', word, {
+                    'word-index': wordsCount + index,
+                    'ner-tag': nertag[wordsCount + index]
+                  }, nertag, wordsCount + index)).join('')
+                } else {
+                  content = content.split('').map((word, index) => getHtmlString('span', word, {
+                    'word-index': wordsCount + index,
+                    'ner-tag': 'O'
+                  }, nertag, wordsCount + index)).join('')
+                }
+                paragraphArr.push({
+                  html: getHtmlString('p', content, {
+                    'para-index': idx,
+                    'style' : 'line-height : '+lineheight+'px',
+                  })
+                })
+                wordsCount += contentLength
+              })
+              let paragraphhtml = ''
+              if(this.item_page_no.length != 0){
+                  paragraphhtml += '<p class="page_title" >'+this.item_page_no[pidx]+'</p>'
+              }else{
+                  paragraphhtml += '<p class="page_title" ></p>'
+              }
+              for (var i in paragraphArr) {
+                paragraphhtml = paragraphhtml + paragraphArr[i].html
+              }
+              pageArr.push({
+                html: getHtmlString('div', paragraphhtml, {
+                  'page-index': pidx,
+                  'class' : 'page',
+                  'count' : pidx,
+                }),
+                wordStartIdx: wordsCount,
+                wordEndIdx: wordsCount - 1
+              })
+            }
+            return pageArr
+          },
+          currentContent () {
+            // 處理頁面
+            let htmlString = ''
+            
+            for (let i in this.paragraphArr) {
+              htmlString += this.paragraphArr[i].html
+            }
+            return htmlString
+          }
+          
+        },
+        watch: {
+         
+        },
+        mounted () {
+          this.getContentSize()
+          // 窗口resize时要自适应高度，不产生滚动条
+          this._resizeHandler = this.onWindowResize.bind(this)
+          window.addEventListener('resize', this._resizeHandler)
+          document.querySelector('#two').addEventListener('scroll', this.handleScroll)
+          this.$el.querySelector(".page_title").parentElement.classList.add('active')
+          this.loading = false
+        },
+        beforeDestroy () {
+          window.removeEventListener('resize', this._resizeHandler)
+        },
+        methods: {
+          handleChange(value) {
+            console.log(value);
+          },
+          handleScroll (event) {
+            let now_page_no = 0
+            let containerlist = this.$el.querySelectorAll(".page_title")
+            let scroll_pos = event.srcElement.scrollTop
+            for (i = 0; i < containerlist.length; ++i) {
+                let _container_pos = containerlist[i].parentElement.offsetTop
+                containerlist[i].parentElement.classList.remove('active')
+                if( (scroll_pos * 1.3 ) > _container_pos){
+                    now_page_no = i
+                    
+                }
+                //console.log(containerlist[i].$refs)
+
+                //console.log(_container_pos)
+            }
+            containerlist[now_page_no].parentElement.classList.add('active')
+            this.current_img = now_page_no
+            
+            // Any code to be executed when the window is scrolled
+          },
+          handleSelect(key, keyPath) {
+              //element ui
+              console.log(key, keyPath);
+          },
+          onWindowResize () {
+            // 防抖
+            if (this._resizeTimer) {
+              clearTimeout(this._resizeTimer)
+            }
+            this._resizeTimer = setTimeout(this.getContentSize.bind(this), this.resizeDebounce)
+          },
+          getContentSize () {
+            // 计算内容高度
+            let windowHeight = window.innerHeight
+            let minHeight = this.contentMinHeight
+            let contentHeight = Math.max(windowHeight, minHeight) - this.marginGap * 2
+            let maxLineCount = Math.floor(contentHeight / (this.fontSize * this.lineHeight))
+            this.maxLineCount = maxLineCount
+            this.contentHeight = maxLineCount * this.fontSize * this.lineHeight
+            // 计算内容宽度
+            let windowWidth = window.innerWidth
+
+            let widthBoundary = this.contentWidthBoundary
+            let widthRadio
+            if (windowWidth > widthBoundary) widthRadio = 0.6
+            else if (windowWidth > this.contentMinWidth) {
+              widthRadio = 0.6 + 0.4 * (Math.abs(widthBoundary - windowWidth) / (widthBoundary - this.contentMinWidth))
+            } else widthRadio = 1
+            let wantedWidth = windowWidth * widthRadio
+            this.contentWidth = windowWidth > this.contentMinWidth ? wantedWidth : windowWidth
+
+          }
+        }    
+    });
+    
+    //啟動滑動條
+    Split(['#one', '#two'], {
+        gutterSize: 5,
+        sizes: [60,40]
+    });
+         
+    function getHtmlString (name, content, attributes = {}, nertag = [], wordindex) {
+        let attrArr = []
+        let index = 0
+        index = wordindex
+        let addfront = ''
+        let addback = ''
+        if (nertag.length > 0) {
+          if (nertag[index] === 'O') {
+            if (index > 0) {
+              if (nertag[index - 1] !== 'O') {
+                addfront = '</span>'
+              } else {
+                addback = '</span>'
+              }
+            }
+          } else if (nertag[index] === 'B-PER') {
+            if (nertag[index - 1] !== 'O') {
+              addfront = '</span><span class="ner" ner="per">'
+            } else {
+              addfront = '<span class="ner" ner="per">'
+            }
+          } else if (nertag[index] === 'B-ORG') {
+            if (nertag[index - 1] !== 'O') {
+              addfront = '</span><span class="ner" ner="org">'
+            } else {
+              addfront = '<span class="ner" ner="org">'
+            }
+          } else if (nertag[index] === 'B-LOC') {
+            if (nertag[index - 1] !== 'O') {
+              addfront = '</span><span class="ner" ner="loc">'
+            } else {
+              addfront = '<span class="ner" ner="loc">'
+            }
+          } else {
+            if (nertag[index + 1] === 'O') {
+              addback = '</span>'
+            }
+          }
+        }
+        for (let key in attributes) {
+          attrArr.push(` ${key}="${attributes[key]}"`)
+        }
+        return addfront + `<${name}${attrArr.join('')}>${content}</${name}>` + addback
+      }
+      
+}
+            
+</script>    

@@ -1,0 +1,123 @@
+.flex {
+    display: flex;
+    flex-direction: row;
+}
+.gutter.gutter-horizontal {
+    cursor: ew-resize;
+    background: gray;
+}
+.split {
+    width:100%;
+    height:100%;
+    padding: 30px;
+}
+
+.page_title {
+    margin-bottom: 2.5rem;
+    width: 100%;
+    height: 20px;
+    background: gray;
+    cursor: pointer;
+}
+
+.page.active{
+    background: lightgrey;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+#app {
+  height: 100%;
+  font-family: 'Avenir', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #2c3e50;
+}
+
+.reader__wrapper {
+  position: relative;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.reader__settings {
+  position: absolute;
+  z-index: 1000;
+  bottom: 0;
+  left: 0;
+  width: 20%;
+  text-align: center;
+}
+.reader__content {
+  position: relative;
+  margin-left: auto;
+  margin-right: auto;
+  overflow: hidden;
+  padding-top: 1vh;
+  padding-bottom: vh;
+  overflow: auto;
+}
+.reader__text p {
+  margin: 0;
+  text-align: left;
+}
+.reader__infor{
+  position: relative;
+  bottom: 96vh;
+  left: 0;
+  width: 100%;
+  text-align: center;
+}
+.reader__text p{
+  text-indent: 2em;
+}
+.ner[ner="loc"]{
+  cursor: pointer;
+  color: red;
+}
+.ner[ner="per"]{
+  cursor: pointer;
+  color: green;
+}
+.ner[ner="org"]{
+  cursor: pointer;
+  color: blue;
+}
+.el-header, .el-footer {
+  background-color: #B3C0D1;
+  color: #333;
+  text-align: center;
+  line-height: 60px;
+  margin-bottom: 1%;
+}
+.el-main {
+  background-color: #E9EEF3;
+  color: #333;
+  text-align: center;
+  line-height: 160px;
+  position: relative;
+}
+body > .el-container {
+  margin-bottom: 40px;
+}
+.el-container:nth-child(5) .el-aside,
+.el-container:nth-child(6) .el-aside {
+  line-height: 260px;
+}
+.el-container:nth-child(7) .el-aside {
+  line-height: 320px;
+}
+
+.el-menu-vertical-demo:not(.el-menu--collapse) {
+    width: 30%;
+    min-height: 100%;
+
+}
+
+.el-menu-vertical-demo.el-menu--collapse {
+    width: 0px;
+    visibility: hidden;
+}

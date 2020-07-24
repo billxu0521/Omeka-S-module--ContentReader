@@ -1,0 +1,202 @@
+    <div style="position:relative;">
+	<?php
+                $translate = $this->plugin('translate');
+		
+                $this->headScript()->appendFile($this->assetUrl('js/vue.min.js', 'ContentReader'));
+                $this->headScript()->appendFile($this->assetUrl('js/element/element.js', 'ContentReader'));
+                $this->headScript()->appendFile($this->assetUrl('js/element/icon.js', 'Reader'));
+                $this->headScript()->appendFile($this->assetUrl('js/split.js', 'ContentReader'));
+
+                $this->headLink()->prependStylesheet($this->assetUrl('css/element/index.css', 'ContentReader'));
+                $this->headLink()->prependStylesheet($this->assetUrl('css/element/icon.css', 'ContentReader'));
+                
+                $headingTerm = $this->siteSetting('browse_heading_property_term');
+                $bodyTerm = $this->siteSetting('browse_body_property_term');
+                $date_objs = array(); 
+                foreach ($this->resources as $resource):
+                    $contentlist = $resource->value('bibo:content',['all' => true]);
+                    $allcontent = array(); 
+                    $allimgurl = array(); 
+                    $medialist = $resource->media();
+                    foreach ($contentlist as $content):
+                        array_push($allcontent,$content);
+                    endforeach;
+                    //$imglist = $media->originalUrl();
+                    
+                    foreach ($medialist as $media):
+                        array_push($allimgurl,$media->originalUrl());
+                    endforeach;
+                    $id = $resource->id();
+                    $title = $resource->displayTitle();
+                    $date = $resource->value('dcterms:date', ['all' => true]);
+                    array_push($date_objs,[$id=>['id'=>$id,'title'=>$title,'content'=>$allcontent,'img'=>$allimgurl]]);
+                endforeach;
+       ?>
+    <div id="app">
+        <el-container class="reader__wrapper" :style="{'padding-top': marginGap + 'px'}">
+            <el-header>{{ item_title }}</el-header>
+            <el-menu :default-active="activeIndex" class="el-menu-demo reader__settings" mode="horizontal" @select="handleSelect">
+        <el-submenu index="1">
+            <template slot="title">字型大小</template>
+            <el-menu-item index="1-2"><input type="number" v-model="fontSize" min="8" max="30"> </el-menu-item>
+        </el-submenu>
+
+        </el-menu >
+            <div class="reader__infor" :style="{'height': marginGap + 'px', 'line-height': marginGap + 'px'}">
+                <span> 作者:{{ item_author }}</span>
+                <span> 字型大小 </span>
+            </div>
+        <el-main class="flex">
+            <div class="split" id="one" :style="">
+                <div class="demo-image">
+                    <div class="block" >
+                      <el-image
+                          :src=imgurl[current_img]>
+                      </el-image>
+                    </div>
+                </div>
+            </div>
+            <div class="reader__content split" id="two":style="{'width': contentWidth + 'px', 'height': contentHeight + 'px', 'font-size': fontSize + 'px', 'line-height': lineHeight}" >
+                <div class="reader__text textDiv" v-html="currentContent" :style="{'margin-top': -1 * fontSize * lineHeight * activePage.topHiddenLineCount + 'px','height': (contentHeight * 1.3 )  + 'px'}"></div>
+            </div>
+         </el-main>
+      </el-container>
+    </div>
+        
+    <script>
+    
+    //將資料暫存  傳到vue上面
+    let _data = <?php echo json_encode($date_objs)?>;
+    let current_item = _data[0];
+    console.log(current_item);
+    let current_item_id = current_item[Object.keys(current_item)]['id'];
+    let current_item_title = current_item[Object.keys(current_item)]['title'];
+    let item_content_list = current_item[Object.keys(current_item)]['content'];
+    let item_img = current_item[Object.keys(current_item)]['img'];
+
+    let current_item_author = '';
+    let current_item_content = [];
+    for(let i in item_content_list){
+        current_item_content.push(item_content_list[i]['@value']);
+    }
+    //let current_item_content = current_item[Object.keys(current_item)]['content'];
+    console.log(current_item_id,current_item_title,current_item_content);
+        
+
+    //代辦
+    //要考慮到meta裡面資料會分項，再加個迴圈包起來
+    //調整版型
+    </script>
+    <?php echo $this->partial('content-reader/content-reader'); ?>
+    
+    <style lang="less">
+        .flex {
+            display: flex;
+            flex-direction: row;
+        }
+        .gutter.gutter-horizontal {
+            cursor: ew-resize;
+            background: gray;
+        }
+        .split {
+            width:100%;
+            height:100%;
+            padding: 30px;
+        }
+       
+        .page_title {
+            margin-bottom: 2.5rem;
+            width: 100%;
+            height: 20px;
+            background: gray;
+            cursor: pointer;
+        }
+        
+        .page.active{
+               background: lightgrey;
+        }
+        
+        html, body {
+          margin: 0;
+          padding: 0;
+          height: 100%;
+        }
+        #app {
+          height: 100%;
+          font-family: 'Avenir', Helvetica, Arial, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          color: #2c3e50;
+        }
+
+        .reader__wrapper {
+          position: relative;
+          height: 100%;
+          box-sizing: border-box;
+          overflow: hidden;
+        }
+        .reader__settings {
+          position: relative;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          text-align: center;
+        }
+        .reader__content {
+          position: relative;
+          margin-left: auto;
+          margin-right: auto;
+          overflow: hidden;
+          padding-top: 1vh;
+          padding-bottom: vh;
+          overflow: auto;
+        }
+        .reader__text p {
+          margin: 0;
+          text-align: left;
+        }
+        .reader__infor{
+          position: relative;
+          bottom: 96vh;
+          left: 0;
+          width: 100%;
+          text-align: center;
+        }
+        .reader__text p{
+          text-indent: 2em;
+        }
+        .ner[ner="loc"]{
+          cursor: pointer;
+          color: red;
+        }
+        .ner[ner="per"]{
+          cursor: pointer;
+          color: green;
+        }
+        .ner[ner="org"]{
+          cursor: pointer;
+          color: blue;
+        }
+        .el-header, .el-footer {
+          background-color: #B3C0D1;
+          color: #333;
+          text-align: center;
+          line-height: 60px;
+        }
+        .el-main {
+          background-color: #E9EEF3;
+          color: #333;
+          text-align: center;
+          line-height: 160px;
+        }
+        body > .el-container {
+          margin-bottom: 40px;
+        }
+        .el-container:nth-child(5) .el-aside,
+        .el-container:nth-child(6) .el-aside {
+          line-height: 260px;
+        }
+        .el-container:nth-child(7) .el-aside {
+          line-height: 320px;
+        }
+    </style>

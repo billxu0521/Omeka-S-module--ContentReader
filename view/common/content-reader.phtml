@@ -1,0 +1,276 @@
+    <div style="position:relative;">
+	<?php
+                $translate = $this->plugin('translate');
+		
+                $this->headScript()->appendFile($this->assetUrl('js/vue.min.js', 'ContentReader'));
+                $this->headScript()->appendFile($this->assetUrl('js/element/element.js', 'ContentReader'));
+                $this->headScript()->appendFile($this->assetUrl('js/element/icon.js', 'Reader'));
+                $this->headScript()->appendFile($this->assetUrl('js/split.js', 'ContentReader'));
+                $this->headScript()->appendFile($this->assetUrl('js/zoomOnHover.js', 'ContentReader'));
+
+                $this->headLink()->prependStylesheet($this->assetUrl('css/element/index.css', 'ContentReader'));
+                $this->headLink()->prependStylesheet($this->assetUrl('css/element/icon.css', 'ContentReader'));
+                $this->headLink()->prependStylesheet($this->assetUrl('css/zoomOnHover.css', 'ContentReader'));
+
+                $date_objs = array(); 
+                $allcontent = array(); 
+                $allimgurl = array();
+                $pagelist = array();
+                $headingTerm = $this->siteSetting('browse_heading_property_term');
+                $bodyTerm = $this->siteSetting('browse_body_property_term');
+                $contentlist = $resource->value('bibo:content',['all' => true]);
+                $medialist = $resource->media();
+                foreach ($contentlist as $content):
+                    array_push($allcontent,$content);
+                endforeach;
+                //$imglist = $media->originalUrl();
+
+                foreach ($medialist as $media):
+                    array_push($allimgurl,$media->originalUrl());
+                endforeach;
+                
+                if($resource->value('bibo:pageStart') != null){
+                    $pagestart = $resource->value('bibo:pageStart');
+                    $pageend = $resource->value('bibo:pageEnd');
+                    $pagecount = $pageend - $pagestart;
+                    for($i = $pagestart; $i <= $pagecount;$i++){
+                        array_push($pagelist,$i);
+                    }
+                }
+                $id = $resource->id();
+                $title = $resource->displayTitle();
+                $date = $resource->value('dcterms:date', ['all' => true]);
+                array_push($date_objs,[$id=>['id'=>$id,'title'=>$title,'content'=>$allcontent,'img'=>$allimgurl,'pagelist'=>$pagelist]]);
+       ?>
+    <div id="app">
+        <el-container v-loading="loading" class="reader__wrapper" :style="{'padding-top': marginGap + 'px'}">
+            <el-header>{{ item_title }}
+                <el-radio-group  fill="#4F4F4F	" id="readermenu" v-model="isCollapse" style="margin-bottom: 1%;">
+                    <el-radio-button :label="true">關閉選單</el-radio-button>
+                    <el-radio-button :label="false">開啟選單</el-radio-button>
+                </el-radio-group>
+            </el-header>
+            
+        <el-main class="flex">
+            <el-menu :default-active="activeIndex" class="el-menu-vertical-demo reader__settings" mode="vertical"  @select="handleSelect" :collapse="isCollapse" collapse-transition>
+        <el-submenu index="1">
+            <template slot="title">排版設定</template>
+            <el-menu-item index="1-1">字型大小
+                <el-input-number v-model="fontSize" size="small" 
+                                 data-bind="" @change="handleChange" :min="8" :max="30">
+                </el-input-number>
+            </el-menu-item>
+            <el-menu-item index="1-2">字距寬度
+                <el-input-number v-model="letterspacing" size="small" 
+                                 data-bind="" @change="handleChange" :min="1" :max="10">
+                </el-input-number>
+            </el-menu-item>
+            <el-menu-item index="1-3">行距高度
+                <el-input-number v-model="plineheight" size="small" 
+                                 data-bind=""@change="handleChange" :min="20" :max="50">
+                </el-input-number>
+            </el-menu-item>
+        </el-submenu>
+        <el-submenu index="2">
+            <template slot="title">圖片設定</template>
+            <el-menu-item index="2-1"><el-switch
+                v-model="displayImg"
+                active-text="顯示圖片"
+                inactive-text="不顯示圖片">
+                </el-switch>
+            </el-menu-item>
+        </el-submenu>
+
+        </el-menu >
+            <div class="split" id="one" :style="" v-show="displayImg">
+                <div class="image" >
+                    <div class="block" style="line-height:0px;">
+                      <zoom-on-hover :img-normal=imgurl[current_img] :scale=4></zoom-on-hover>
+                      <div style="color:#878787;font-size: 20px;"><i class="el-icon-zoom-in"></i>滑鼠移到圖片上即可放大檢視</div>
+                    </div>
+                    
+                </div>
+            </div>
+            <div class="reader__content split" id="two" v-show="displayContent" :style="{'width': contentWidth + 'px', 'height': contentHeight + 'px', 'font-size': fontSize + 'px', 'line-height': lineHeight}" >
+                <div class="reader__text textDiv" v-html="currentContent" 
+                    :style="{'margin-top': -1 * fontSize * lineHeight * activePage.topHiddenLineCount + 'px','height': (contentHeight * 1.5 )  + 'px','letter-spacing' : letterspacing + 'px'}"></div>
+            </div>
+         </el-main>
+      </el-container>
+    </div>
+        
+    <script>
+    
+    //將資料暫存  傳到vue上面
+    let _data = <?php echo json_encode($date_objs)?>;
+    let current_item = _data[0];
+    let current_item_id = current_item[Object.keys(current_item)]['id'];
+    let current_item_title = current_item[Object.keys(current_item)]['title'];
+    let item_content_list = current_item[Object.keys(current_item)]['content'];
+    let item_img = current_item[Object.keys(current_item)]['img'];
+    let current_item_author = '';
+    let current_item_content = [];
+    let current_item_page = current_item[Object.keys(current_item)]['pagelist'];
+    for(let i in item_content_list){
+        current_item_content.push(item_content_list[i]['@value']);
+    }
+    //let current_item_content = current_item[Object.keys(current_item)]['content'];
+    </script>
+    <?php echo $this->partial('content-reader/content-reader'); ?>
+    
+    <style lang="less">
+        .flex {
+            display: flex;
+            flex-direction: row;
+        }
+        .gutter.gutter-horizontal {
+            cursor: ew-resize;
+            background: gray;
+        }
+        .split {
+            width:100%;
+            height:100%;
+            padding: 30px;
+        }
+       
+        .page_title {
+            border: gray;
+            border-style: solid;
+            border-width: 1px;
+            margin-bottom: 2.5rem;
+            width: 100%;
+            height: 20px;
+            cursor: pointer;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+            color: black;
+        }
+        
+        .page{
+            border-radius: 5px;
+            margin-bottom: 1%;
+        }
+        
+        .page.active{
+        }
+        
+        .page.active .page_title{
+            background: grey;
+            color: white;
+        }
+        
+        html, body {
+          margin: 0;
+          padding: 0;
+          height: 100%;
+        }
+        #app {
+          height: 100%;
+          font-family: 'Avenir', Helvetica, Arial, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          color: #2c3e50;
+        }
+
+        .reader__wrapper {
+          position: relative;
+          height: 100%;
+          box-sizing: border-box;
+          overflow: hidden;
+        }
+        .reader__settings {
+          position: absolute;
+          z-index: 1000;
+          bottom: 0;
+          left: 0;
+          width: 20%;
+          text-align: center;
+        }
+        .reader__content {
+          position: relative;
+          margin-left: auto;
+          margin-right: auto;
+          overflow: hidden;
+          padding-top: 1vh;
+          padding-bottom: vh;
+          overflow: auto;
+        }
+        .reader__text p {
+          margin: 0;
+          text-align: left;
+        }
+        .reader__infor{
+          position: relative;
+          bottom: 96vh;
+          left: 0;
+          width: 100%;
+          text-align: center;
+        }
+        .reader__text p{
+          text-indent: 2em;
+        }
+        .ner[ner="loc"]{
+          cursor: pointer;
+          color: red;
+        }
+        .ner[ner="per"]{
+          cursor: pointer;
+          color: green;
+        }
+        .ner[ner="org"]{
+          cursor: pointer;
+          color: blue;
+        }
+        .el-header, .el-footer {
+          background-color: #272727;
+          color: white;
+          text-align: center;
+          line-height: 60px;
+          margin-bottom: -1%;
+          border-radius: 10px;
+          height: 65px !important;
+          font-size: 28px;
+        }
+        .el-main {
+          background-color: #E9EEF3;
+          color: #333;
+          text-align: center;
+          line-height: 160px;
+          position: relative;
+          border-bottom-right-radius: 10px;
+          border-bottom-left-radius: 10px;
+        }
+        body > .el-container {
+          margin-bottom: 40px;
+        }
+        .el-container:nth-child(5) .el-aside,
+        .el-container:nth-child(6) .el-aside {
+          line-height: 260px;
+        }
+        .el-container:nth-child(7) .el-aside {
+          line-height: 320px;
+        }
+        
+        .el-menu-vertical-demo:not(.el-menu--collapse) {
+            width: 30%;
+            min-height: 100%;
+            
+        }
+        
+        .el-menu-vertical-demo.el-menu--collapse {
+            width: 0px;
+            visibility: hidden;
+        }
+        
+        #one{
+            padding: 10px;
+        }
+        
+        #readermenu{
+            float: right;
+            left: 5px;
+            padding: 1%;
+            position: absolute;
+        }
+       
+    </style>
