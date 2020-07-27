@@ -4,13 +4,11 @@
 ContentReader (module for Omeka S)
 ===================================
 
-This module is a read-tool for content of item in [OmekaS].
+This module is a read-tool for content of item in [OmekaS].User can concentrate on read content of item in show page.
 
 
 Installation
 ------------
-Install the module [Guest].
-
 Uncompress files in the module directory and rename module folder `ContentReader`.
 Then install it like any other Omeka module and follow the config instructions.
 
@@ -18,6 +16,7 @@ See general end user documentation for [Installing a module].
 
 Usage
 -----
+After install module, `ContentReader` will auto show in `item` page.`ContentReader` is a read-tool that has two windows, the right side can be used to view the content, the left side can view the media(\*.png,j \*.pg or \*.pdf).The sort binding of the two windows is through the properties 'content' and the sort of 'media'.It is recommended that the paragraphs of the content of `item` are in the same order as the media of `item`.
 
 
 Warning
@@ -27,6 +26,12 @@ Use it at your own risk.
 
 It’s always recommended to backup your files and your databases and to check
 your archives regularly so you can roll back if needed.
+
+
+FutureWork
+----------
+- A viewer in page that can read all item in item set.
+- Can interface with moudule `Selection` 
 
 
 Troubleshooting
