@@ -82,18 +82,21 @@
         </el-submenu>
 
         </el-menu >
-            <div class="split" id="one" :style="" v-show="displayImg">
-                <div class="image" >
+            <div class="split" id="one" :style="" v-if="displayImg">
+                <div class="image" v-if="displayPdf">
+                    <embed :src=imgurl[current_img] type="application/pdf" style="height:90vh;width:100%;">
+                </div>
+                <div class="image" v-if="displayPic">
                     <div class="block" style="line-height:0px;">
-                      <zoom-on-hover :img-normal=imgurl[current_img] :scale=4></zoom-on-hover>
-                      <div style="color:#878787;font-size: 20px;"><i class="el-icon-zoom-in"></i>滑鼠移到圖片上即可放大檢視</div>
+                        <div style="color:#878787;font-size: 20px;"><i class="el-icon-zoom-in"></i>滑鼠移到圖片上即可放大檢視</div>
+                        <zoom-on-hover :img-normal=imgurl[current_img] :scale=4 ></zoom-on-hover>
                     </div>
-                    
                 </div>
             </div>
+               
             <div class="reader__content split" id="two" v-show="displayContent" :style="{'width': contentWidth + 'px', 'height': contentHeight + 'px', 'font-size': fontSize + 'px', 'line-height': lineHeight}" >
                 <div class="reader__text textDiv" v-html="currentContent" 
-                    :style="{'margin-top': -1 * fontSize * lineHeight * activePage.topHiddenLineCount + 'px','height': (contentHeight * 1.5 )  + 'px','letter-spacing' : letterspacing + 'px'}"></div>
+                    :style="{'margin-top': -1 * fontSize * lineHeight * activePage.topHiddenLineCount + 'px','height': (contentHeight * 2.0 )  + 'px','letter-spacing' : letterspacing + 'px'}"></div>
             </div>
          </el-main>
       </el-container>
@@ -152,6 +155,7 @@
         }
         
         .page.active{
+            color: #333;
         }
         
         .page.active .page_title{
@@ -233,7 +237,7 @@
         }
         .el-main {
           background-color: #E9EEF3;
-          color: #333;
+          color: #878787;
           text-align: center;
           line-height: 160px;
           position: relative;
@@ -254,7 +258,6 @@
         .el-menu-vertical-demo:not(.el-menu--collapse) {
             width: 30%;
             min-height: 100%;
-            
         }
         
         .el-menu-vertical-demo.el-menu--collapse {

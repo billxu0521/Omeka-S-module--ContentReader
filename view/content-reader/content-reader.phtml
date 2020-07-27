@@ -41,6 +41,8 @@
             current_img: 0,
             imgurl: item_img,
             displayImg:true,
+            displayPdf:false,
+            displayPic:true,
             displayContent:true,
             isCollapse: true,
             loading: true,
@@ -116,7 +118,20 @@
           
         },
         watch: {
-         
+            current_img:function (val){
+                let img = this.imgurl[val]
+                let name = this.getFileExtension(img)
+                console.log(name)
+              
+                if(name != 'pdf'){
+                    this.displayPic = true
+                    this.displayPdf = false
+                }else{
+                    this.displayPic = false
+                    this.displayPdf = true
+                }
+               
+            }
         },
         mounted () {
           this.getContentSize()
@@ -131,6 +146,11 @@
           window.removeEventListener('resize', this._resizeHandler)
         },
         methods: {
+          checkImg(){
+              let img = imgurl[current_img]
+              let name = getFileExtension(img)
+              console.log(name)
+          },
           handleChange(value) {
             console.log(value);
           },
@@ -185,6 +205,9 @@
             let wantedWidth = windowWidth * widthRadio
             this.contentWidth = windowWidth > this.contentMinWidth ? wantedWidth : windowWidth
 
+          },
+          getFileExtension(filename) {
+            return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
           }
         }    
     });
