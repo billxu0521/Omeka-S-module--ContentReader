@@ -120,9 +120,7 @@
         watch: {
             current_img:function (val){
                 let img = this.imgurl[val]
-                let name = this.getFileExtension(img)
-                console.log(name)
-              
+                let name = this.getFileExtension(img)              
                 if(name != 'pdf'){
                     this.displayPic = true
                     this.displayPdf = false
@@ -130,17 +128,25 @@
                     this.displayPic = false
                     this.displayPdf = true
                 }
-               
             }
         },
         mounted () {
-          this.getContentSize()
-          // 窗口resize时要自适应高度，不产生滚动条
-          this._resizeHandler = this.onWindowResize.bind(this)
-          window.addEventListener('resize', this._resizeHandler)
-          document.querySelector('#two').addEventListener('scroll', this.handleScroll)
-          this.$el.querySelector(".page_title").parentElement.classList.add('active')
-          this.loading = false
+            this.getContentSize()
+            // 窗口resize时要自适应高度，不产生滚动条
+            this._resizeHandler = this.onWindowResize.bind(this)
+            window.addEventListener('resize', this._resizeHandler)
+            document.querySelector('#two').addEventListener('scroll', this.handleScroll)
+            this.$el.querySelector(".page_title").parentElement.classList.add('active')
+            this.loading = false
+            let img = this.imgurl[this.current_img]
+            let name = this.getFileExtension(img)
+            if(name != 'pdf'){
+                this.displayPic = true
+                this.displayPdf = false
+            }else{
+                this.displayPic = false
+                this.displayPdf = true
+            }
         },
         beforeDestroy () {
           window.removeEventListener('resize', this._resizeHandler)
@@ -161,17 +167,14 @@
             for (i = 0; i < containerlist.length; ++i) {
                 let _container_pos = containerlist[i].parentElement.offsetTop
                 containerlist[i].parentElement.classList.remove('active')
-                if( (scroll_pos * 1.3 ) > _container_pos){
+                if( (scroll_pos + 100 ) > _container_pos){
                     now_page_no = i
-                    
                 }
                 //console.log(containerlist[i].$refs)
-
                 //console.log(_container_pos)
             }
             containerlist[now_page_no].parentElement.classList.add('active')
             this.current_img = now_page_no
-            
             // Any code to be executed when the window is scrolled
           },
           handleSelect(key, keyPath) {

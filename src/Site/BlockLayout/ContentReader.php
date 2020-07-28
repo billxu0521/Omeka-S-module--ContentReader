@@ -62,7 +62,6 @@ class ContentReader extends AbstractBlockLayout
 	{
                 $resourceType = $block->dataValue('resource_type', 'items');
                 parse_str($block->dataValue('query'), $query);
-                $originalQuery = $query;
                 $site = $block->page()->site();
                
                 $query['site_id'] = $site->id();

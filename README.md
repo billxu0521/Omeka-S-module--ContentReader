@@ -4,7 +4,7 @@
 ContentReader (module for Omeka S)
 ===================================
 
-This module is a read-tool for content of item in [OmekaS].User can concentrate on read content of item in show page.
+This module is a read-tool for content of item in [Omeka S].User can concentrate on read content of item in show page.
 
 
 Installation

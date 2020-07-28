@@ -30,11 +30,12 @@
                 endforeach;
                 
                 if($resource->value('bibo:pageStart') != null){
-                    $pagestart = $resource->value('bibo:pageStart');
-                    $pageend = $resource->value('bibo:pageEnd');
-                    $pagecount = $pageend - $pagestart;
-                    for($i = $pagestart; $i <= $pagecount;$i++){
-                        array_push($pagelist,$i);
+                    $pagestart = (string)($resource->value('bibo:pageStart'));
+                    $pageend = (string)($resource->value('bibo:pageEnd'));
+                    $pagecount = intval($pageend) - intval($pagestart);
+                    for($i = 0; $i <= $pagecount;$i++){
+                       
+                        array_push($pagelist,intval($pagestart) + $i);
                     }
                 }
                 $id = $resource->id();
@@ -106,6 +107,7 @@
     
     //將資料暫存  傳到vue上面
     let _data = <?php echo json_encode($date_objs)?>;
+    console.log(_data)
     let current_item = _data[0];
     let current_item_id = current_item[Object.keys(current_item)]['id'];
     let current_item_title = current_item[Object.keys(current_item)]['title'];
@@ -136,7 +138,7 @@
             padding: 30px;
         }
        
-        .page_title {
+        p.page_title {
             border: gray;
             border-style: solid;
             border-width: 1px;
@@ -147,6 +149,10 @@
             border-top-left-radius: 5px;
             border-top-right-radius: 5px;
             color: black;
+            text-align: center !important;
+            font-weight: 800;
+            height: 35px;
+            text-indent: 0 !important;
         }
         
         .page{
@@ -161,6 +167,8 @@
         .page.active .page_title{
             background: grey;
             color: white;
+            text-align: center;
+            text-indent: 0;
         }
         
         html, body {
@@ -232,7 +240,7 @@
           line-height: 60px;
           margin-bottom: -1%;
           border-radius: 10px;
-          height: 65px !important;
+          height: 70px !important;
           font-size: 28px;
         }
         .el-main {
@@ -246,7 +254,13 @@
         }
         body > .el-container {
           margin-bottom: 40px;
+          
         }
+        
+        .el-container {
+            max-height: 99vh;
+        }
+        
         .el-container:nth-child(5) .el-aside,
         .el-container:nth-child(6) .el-aside {
           line-height: 260px;
