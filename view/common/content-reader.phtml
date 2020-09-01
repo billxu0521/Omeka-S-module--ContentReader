@@ -90,7 +90,7 @@
                 <div class="image" v-if="displayPic">
                     <div class="block" style="line-height:0px;">
                         <div style="color:#878787;font-size: 20px;"><i class="el-icon-zoom-in"></i>滑鼠移到圖片上即可放大檢視</div>
-                        <zoom-on-hover :img-normal=imgurl[current_img] :scale=4 ></zoom-on-hover>
+                        <zoom-on-hover :img-normal=imgurl[current_img] :scale=2 ></zoom-on-hover>
                     </div>
                 </div>
             </div>
@@ -108,6 +108,15 @@
     //將資料暫存  傳到vue上面
     let _data = <?php echo json_encode($date_objs)?>;
     console.log(_data)
+    let all_data = {}
+    let all_item_list = []
+    for(let a in _data){
+        let item_num = Object.keys(_data[a])[0]
+        console.log(_data[a][item_num])
+        all_item_list.push({'item_id':item_num,'title':_data[a][item_num]['title']});
+        all_data[item_num] = {'id':item_num,'title':_data[a][item_num]['title'],'img':_data[a][item_num]['img'],'pagelist':_data[a][item_num]['pagelist'],'content':_data[a][item_num]['content']}
+    }
+    
     let current_item = _data[0];
     let current_item_id = current_item[Object.keys(current_item)]['id'];
     let current_item_title = current_item[Object.keys(current_item)]['title'];
@@ -290,4 +299,7 @@
             position: absolute;
         }
        
+        .el-input input{
+            width: 100%;
+        }
     </style>

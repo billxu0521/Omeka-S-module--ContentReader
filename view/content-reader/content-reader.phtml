@@ -32,20 +32,24 @@
             anchor: {},
             activeIndex: '1', // element UI
             activeIndex2: '1', // element UI
-            item_author : current_item_author,
+            alldata:all_data,
+            item_list: all_item_list, //目錄
+            item_author : '',
             item_id : current_item_id,
-            item_title : current_item_title,
-            item_content : current_item_content,
-            item_page_no : current_item_page,
+            item_title : '',
+            item_content : [],
+            item_page_no : '',
             fit: 'none',
             current_img: 0,
-            imgurl: item_img,
+            imgurl: [],
             displayImg:true,
             displayPdf:false,
             displayPic:true,
             displayContent:true,
             isCollapse: true,
             loading: true,
+            drawer: false,
+            search:'',
           }
         },
         computed: {
@@ -128,15 +132,42 @@
                     this.displayPic = false
                     this.displayPdf = true
                 }
+            },
+            item_id:function (val){
+                //item_author : current_item_author,
+                console.log(this.alldata)
+                console.log(val)
+                this.item_title = this.alldata[val]['title']
+                this.item_page_no = this.alldata[val]['pagelist']
+                this.imgurl = this.alldata[this.item_id]['img']
+                let _item_content_list = this.alldata[this.item_id]['content']
+                let _item_content = []
+                for(let i in _item_content_list){
+                    _item_content.push(_item_content_list[i]['@value']);
+                }
+                this.item_content = _item_content
+
             }
         },
-        mounted () {
+        mounted () {            
+            this.item_title = this.alldata[this.item_id]['title']
+            this.item_page_no = this.alldata[this.item_id]['pagelist']
+            let _item_content_list = this.alldata[this.item_id]['content']
+            this.imgurl = this.alldata[this.item_id]['img']
+
+            let _item_content = []
+            for(let i in _item_content_list){
+                _item_content.push(_item_content_list[i]['@value']);
+            }
+            this.item_content = _item_content
+            
+            
             this.getContentSize()
             // 窗口resize时要自适应高度，不产生滚动条
             this._resizeHandler = this.onWindowResize.bind(this)
             window.addEventListener('resize', this._resizeHandler)
             document.querySelector('#two').addEventListener('scroll', this.handleScroll)
-            this.$el.querySelector(".page_title").parentElement.classList.add('active')
+            
             this.loading = false
             let img = this.imgurl[this.current_img]
             let name = this.getFileExtension(img)
@@ -148,10 +179,17 @@
                 this.displayPdf = true
             }
         },
+        updated(){
+            this.$el.querySelector(".page_title").parentElement.classList.add('active')
+        },
         beforeDestroy () {
           window.removeEventListener('resize', this._resizeHandler)
         },
         methods: {
+          select_item(index, row){
+              console.log(row);
+              this.item_id = row['item_id']
+          },
           checkImg(){
               let img = imgurl[current_img]
               let name = getFileExtension(img)

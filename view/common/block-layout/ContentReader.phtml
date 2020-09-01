@@ -6,9 +6,11 @@
                 $this->headScript()->appendFile($this->assetUrl('js/element/element.js', 'ContentReader'));
                 $this->headScript()->appendFile($this->assetUrl('js/element/icon.js', 'Reader'));
                 $this->headScript()->appendFile($this->assetUrl('js/split.js', 'ContentReader'));
-
+                $this->headScript()->appendFile($this->assetUrl('js/zoomOnHover.js', 'ContentReader'));
+                
                 $this->headLink()->prependStylesheet($this->assetUrl('css/element/index.css', 'ContentReader'));
                 $this->headLink()->prependStylesheet($this->assetUrl('css/element/icon.css', 'ContentReader'));
+                $this->headLink()->prependStylesheet($this->assetUrl('css/zoomOnHover.css', 'ContentReader'));
                 
                 $headingTerm = $this->siteSetting('browse_heading_property_term');
                 $bodyTerm = $this->siteSetting('browse_body_property_term');
@@ -17,6 +19,7 @@
                     $contentlist = $resource->value('bibo:content',['all' => true]);
                     $allcontent = array(); 
                     $allimgurl = array(); 
+                    $pagelist = array();
                     $medialist = $resource->media();
                     foreach ($contentlist as $content):
                         array_push($allcontent,$content);
@@ -26,38 +29,112 @@
                     foreach ($medialist as $media):
                         array_push($allimgurl,$media->originalUrl());
                     endforeach;
+                    
+                    if($resource->value('bibo:pageStart') != null){
+                        $pagestart = (string)($resource->value('bibo:pageStart'));
+                        $pageend = (string)($resource->value('bibo:pageEnd'));
+                        $pagecount = intval($pageend) - intval($pagestart);
+                        for($i = 0; $i <= $pagecount;$i++){
+
+                            array_push($pagelist,intval($pagestart) + $i);
+                        }
+                    }
+                    
                     $id = $resource->id();
                     $title = $resource->displayTitle();
                     $date = $resource->value('dcterms:date', ['all' => true]);
-                    array_push($date_objs,[$id=>['id'=>$id,'title'=>$title,'content'=>$allcontent,'img'=>$allimgurl]]);
+                    array_push($date_objs,[$id=>['id'=>$id,'title'=>$title,'content'=>$allcontent,'img'=>$allimgurl,'pagelist'=>$pagelist]]);
                 endforeach;
        ?>
-    <div id="app">
-        <el-container class="reader__wrapper" :style="{'padding-top': marginGap + 'px'}">
-            <el-header>{{ item_title }}</el-header>
-            <el-menu :default-active="activeIndex" class="el-menu-demo reader__settings" mode="horizontal" @select="handleSelect">
-        <el-submenu index="1">
-            <template slot="title">字型大小</template>
-            <el-menu-item index="1-2"><input type="number" v-model="fontSize" min="8" max="30"> </el-menu-item>
-        </el-submenu>
+     <div id="app">
+        <el-container v-loading="loading" class="reader__wrapper" :style="{'padding-top': marginGap + 'px'}">
+            <el-header>{{ item_title }}
+                <el-radio-group  fill="#4F4F4F	" id="readermenu" v-model="isCollapse" style="margin-bottom: 1%;">
+                    <el-radio-button :label="true">關閉選單</el-radio-button>
+                    <el-radio-button :label="false">開啟選單</el-radio-button>
+                </el-radio-group>
+                <el-button @click="drawer = true" id="item_list_btn">目錄</el-button>
 
-        </el-menu >
-            <div class="reader__infor" :style="{'height': marginGap + 'px', 'line-height': marginGap + 'px'}">
-                <span> 作者:{{ item_author }}</span>
-                <span> 字型大小 </span>
-            </div>
+                 
+            </el-header>
+                                  
         <el-main class="flex">
-            <div class="split" id="one" :style="">
-                <div class="demo-image">
-                    <div class="block" >
-                      <el-image
-                          :src=imgurl[current_img]>
-                      </el-image>
+            <el-menu :default-active="activeIndex2" class="el-menu-vertical-demo reader__settings" mode="vertical"  @select="handleSelect" :collapse="isCollapse" collapse-transition>
+            <el-submenu index="1">
+                <template slot="title">排版設定</template>
+                <el-menu-item index="1-1">字型大小
+                    <el-input-number v-model="fontSize" size="small" 
+                                     data-bind="" @change="handleChange" :min="8" :max="30">
+                    </el-input-number>
+                </el-menu-item>
+                <el-menu-item index="1-2">字距寬度
+                    <el-input-number v-model="letterspacing" size="small" 
+                                     data-bind="" @change="handleChange" :min="1" :max="10">
+                    </el-input-number>
+                </el-menu-item>
+                <el-menu-item index="1-3">行距高度
+                    <el-input-number v-model="plineheight" size="small" 
+                                     data-bind=""@change="handleChange" :min="20" :max="50">
+                    </el-input-number>
+                </el-menu-item>
+            </el-submenu>
+            <el-submenu index="2">
+                <template slot="title">圖片設定</template>
+                <el-menu-item index="2-1"><el-switch
+                    v-model="displayImg"
+                    active-text="顯示圖片"
+                    inactive-text="不顯示圖片">
+                    </el-switch>
+                </el-menu-item>
+            </el-submenu>
+        </el-menu >
+        <el-drawer
+        title="選擇條目"
+        :visible.sync="drawer"
+        :with-header="false"
+        :modal="false"
+        :append-to-body="true"
+        id="item_list">
+            <el-table
+            :data="item_list.filter(data => !search || data.title.toLowerCase().includes(search.toLowerCase()))"
+            style="width: 100%">
+                <el-table-column
+                type=index>
+                </el-table-column>
+                <el-table-column
+                prop="title"
+                label="標題">
+                </el-table-column>
+                <el-table-column label="操作">
+                    <template slot="header" slot-scope="scope">
+                        <el-input
+                          v-model="search"
+                          size="mini"
+                          placeholder="输入关键字搜索"/>
+                    </template>
+                    <template slot-scope="scope">
+                        <el-button
+                        type=index
+                        @click="select_item(scope.$index, scope.row)">前往</el-button>
+                    </template>
+                </el-table-column>            
+            </el-table>
+        </el-drawer>
+            <div class="split" id="one" :style="" v-if="displayImg">
+                <div class="image" v-if="displayPdf">
+                    <embed :src=imgurl[current_img] type="application/pdf" style="height:90vh;width:100%;">
+                </div>
+                <div class="image" v-if="displayPic">
+                    <div class="block" style="line-height:0px;">
+                        <div style="color:#878787;font-size: 20px;"><i class="el-icon-zoom-in"></i>滑鼠移到圖片上即可放大檢視</div>
+                        <zoom-on-hover :img-normal=imgurl[current_img] :scale=2 ></zoom-on-hover>
                     </div>
                 </div>
             </div>
-            <div class="reader__content split" id="two":style="{'width': contentWidth + 'px', 'height': contentHeight + 'px', 'font-size': fontSize + 'px', 'line-height': lineHeight}" >
-                <div class="reader__text textDiv" v-html="currentContent" :style="{'margin-top': -1 * fontSize * lineHeight * activePage.topHiddenLineCount + 'px','height': (contentHeight * 1.3 )  + 'px'}"></div>
+               
+            <div class="reader__content split" id="two" v-show="displayContent" :style="{'width': contentWidth + 'px', 'height': contentHeight + 'px', 'font-size': fontSize + 'px', 'line-height': lineHeight}" >
+                <div class="reader__text textDiv" v-html="currentContent" 
+                    :style="{'margin-top': -1 * fontSize * lineHeight * activePage.topHiddenLineCount + 'px','height': (contentHeight * 2.0 )  + 'px','letter-spacing' : letterspacing + 'px'}"></div>
             </div>
          </el-main>
       </el-container>
@@ -67,25 +144,24 @@
     
     //將資料暫存  傳到vue上面
     let _data = <?php echo json_encode($date_objs)?>;
+    console.log(_data)
+    let all_data = {}
+    let all_item_list = []
+    for(let a in _data){
+        let item_num = Object.keys(_data[a])[0]
+        console.log(_data[a][item_num])
+        all_item_list.push({'item_id':item_num,'title':_data[a][item_num]['title']});
+        all_data[item_num] = {'id':item_num,'title':_data[a][item_num]['title'],'img':_data[a][item_num]['img'],'pagelist':_data[a][item_num]['pagelist'],'content':_data[a][item_num]['content']}
+    }
+    
     let current_item = _data[0];
-    console.log(current_item);
+    
     let current_item_id = current_item[Object.keys(current_item)]['id'];
-    let current_item_title = current_item[Object.keys(current_item)]['title'];
-    let item_content_list = current_item[Object.keys(current_item)]['content'];
-    let item_img = current_item[Object.keys(current_item)]['img'];
-
     let current_item_author = '';
     let current_item_content = [];
-    for(let i in item_content_list){
-        current_item_content.push(item_content_list[i]['@value']);
-    }
+    let current_item_page = current_item[current_item_id]['pagelist'];
+   
     //let current_item_content = current_item[Object.keys(current_item)]['content'];
-    console.log(current_item_id,current_item_title,current_item_content);
-        
-
-    //代辦
-    //要考慮到meta裡面資料會分項，再加個迴圈包起來
-    //調整版型
     </script>
     <?php echo $this->partial('content-reader/content-reader'); ?>
     
@@ -104,16 +180,37 @@
             padding: 30px;
         }
        
-        .page_title {
+        p.page_title {
+            border: gray;
+            border-style: solid;
+            border-width: 1px;
             margin-bottom: 2.5rem;
             width: 100%;
             height: 20px;
-            background: gray;
             cursor: pointer;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+            color: black;
+            text-align: center !important;
+            font-weight: 800;
+            height: 35px;
+            text-indent: 0 !important;
+        }
+        
+        .page{
+            border-radius: 5px;
+            margin-bottom: 1%;
         }
         
         .page.active{
-               background: lightgrey;
+            color: #333;
+        }
+        
+        .page.active .page_title{
+            background: grey;
+            color: white;
+            text-align: center;
+            text-indent: 0;
         }
         
         html, body {
@@ -136,10 +233,11 @@
           overflow: hidden;
         }
         .reader__settings {
-          position: relative;
+          position: absolute;
+          z-index: 1000;
           bottom: 0;
           left: 0;
-          width: 100%;
+          width: 20%;
           text-align: center;
         }
         .reader__content {
@@ -178,25 +276,73 @@
           color: blue;
         }
         .el-header, .el-footer {
-          background-color: #B3C0D1;
-          color: #333;
+          background-color: #272727;
+          color: white;
           text-align: center;
           line-height: 60px;
+          margin-bottom: -1%;
+          border-radius: 10px;
+          height: 70px !important;
+          font-size: 28px;
         }
         .el-main {
           background-color: #E9EEF3;
-          color: #333;
+          color: #878787;
           text-align: center;
           line-height: 160px;
+          position: relative;
+          border-bottom-right-radius: 10px;
+          border-bottom-left-radius: 10px;
         }
         body > .el-container {
           margin-bottom: 40px;
+          
         }
+        
+        .el-container {
+            max-height: 99vh;
+        }
+        
         .el-container:nth-child(5) .el-aside,
         .el-container:nth-child(6) .el-aside {
           line-height: 260px;
         }
         .el-container:nth-child(7) .el-aside {
           line-height: 320px;
+        }
+        
+        .el-menu-vertical-demo:not(.el-menu--collapse) {
+            width: 30%;
+            min-height: 100%;
+        }
+        
+        .el-menu-vertical-demo.el-menu--collapse {
+            width: 0px;
+            visibility: hidden;
+        }
+        
+        #one{
+            padding: 10px;
+        }
+        
+        #readermenu{
+            left: 5px;
+            padding: 1%;
+            position: absolute;
+        }
+       
+        #item_list_btn{
+            display: inline-block;
+            vertical-align: middle;
+            margin-bottom: 1%;
+            right: -40%;
+            position: relative;
+        }
+        #item_list .el-drawer.rtl{
+            overflow: auto;
+        }
+        
+        .el-input input{
+            width: 100%;
         }
     </style>

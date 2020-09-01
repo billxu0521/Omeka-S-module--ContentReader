@@ -30,8 +30,7 @@ your archives regularly so you can roll back if needed.
 
 FutureWork
 ----------
-- A viewer in page that can read all item in item set.
-- Can interface with moudule `Selection` 
+- Interface with moudule `Selection` 
 
 
 Troubleshooting
