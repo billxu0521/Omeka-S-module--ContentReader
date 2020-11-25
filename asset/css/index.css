@@ -78,7 +78,7 @@ html, body {
   cursor: pointer;
   color: red;
 }
-.ner[ner="per"]{
+.ner[ner-tag="PER"]{
   cursor: pointer;
   color: green;
 }

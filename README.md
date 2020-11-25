@@ -1,10 +1,10 @@
 
-# Note! this moudle is unfinished
+# Note! this moudle is developing
 
 ContentReader (module for Omeka S)
 ===================================
 
-This module is a read-tool for content of item in [Omeka S].User can concentrate on read content of item in show page.
+This module is a read-tool for content of item in [Omeka S].User can concentrate on read content of item in show page.this reader build on [Vue] - a JavaScript Framework.
 
 
 Installation
@@ -29,11 +29,11 @@ Use it at your own risk.
 It’s always recommended to backup your files and your databases and to check
 your archives regularly so you can roll back if needed.
 
+- Option : GetSelection is not finished.
 
 FutureWork
 ----------
 - Interface with moudule `Selection` 
-- multi-language
 - classified by item set in pages mode 
 
 Troubleshooting
@@ -85,3 +85,4 @@ Copyright
 [FSF]: https://www.fsf.org
 [OSI]: http://opensource.org
 [billxu]: https://github.com/billxu0521 "Billxu"
+[Vue]: https://vuejs.org/

@@ -1,0 +1,61 @@
+# Translation for the Simple Pages plugin for Omeka.
+# Copyright (C) 2011 Roy Rosenzweig Center for History and New Media
+# This file is distributed under the same license as the Omeka package.
+# 
+# Translators:
+# billxu <billxu0521@gmail.com>, 2020
+msgid ""
+msgstr ""
+"Project-Id-Version: Omeka\n"
+"Report-Msgid-Bugs-To: http://github.com/omeka/plugin-Guest/issues\n"
+"POT-Creation-Date: 2012-01-09 21:49-0500\n"
+"PO-Revision-Date: 2020-04-12 01:18+0000\n"
+"Last-Translator: billxu <billxu0521@gmail.com>\n"
+"Language-Team: \n"
+"MIME-Version: 2.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_TW\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "Close Menu"
+msgstr "關閉選單"
+
+msgid "Open Menu"
+msgstr "開啟選單"
+
+msgid "Setting"
+msgstr "設定"
+
+msgid "Word Spacing"
+msgstr "字元間距"
+
+msgid "Font Size"
+msgstr "字體大小"
+
+msgid "Line spacing"
+msgstr "行距高度"
+
+msgid "Image Setting"
+msgstr "圖片設定"
+
+msgid "Display"
+msgstr "顯示圖片"
+
+msgid "None Display"
+msgstr "不顯示圖片"
+
+msgid "Name Detection"
+msgstr "人名偵測"
+
+msgid "Active"
+msgstr "啟動"
+
+msgid "Close"
+msgstr "關閉"
+
+msgid "Mouse on and zoom in"
+msgstr "滑鼠放置圖片上可以放大"
+
+msgid "Check Item"
+msgstr "查看相關條目"

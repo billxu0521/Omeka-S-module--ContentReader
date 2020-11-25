@@ -1,29 +1,39 @@
     <div style="position:relative;">
 	<?php
+                //這個在item內顯示
                 $translate = $this->plugin('translate');
-		
+
                 $this->headScript()->appendFile($this->assetUrl('js/vue.min.js', 'ContentReader'));
                 $this->headScript()->appendFile($this->assetUrl('js/element/element.js', 'ContentReader'));
                 $this->headScript()->appendFile($this->assetUrl('js/element/icon.js', 'Reader'));
                 $this->headScript()->appendFile($this->assetUrl('js/split.js', 'ContentReader'));
                 $this->headScript()->appendFile($this->assetUrl('js/zoomOnHover.js', 'ContentReader'));
+                $this->headScript()->appendFile($this->assetUrl('js/vue-resource.min.js', 'ContentReader'));
+                $this->headScript()->appendFile($this->assetUrl('js/config.js', 'ContentReader'));
 
                 $this->headLink()->prependStylesheet($this->assetUrl('css/element/index.css', 'ContentReader'));
                 $this->headLink()->prependStylesheet($this->assetUrl('css/element/icon.css', 'ContentReader'));
                 $this->headLink()->prependStylesheet($this->assetUrl('css/zoomOnHover.css', 'ContentReader'));
 
-                $date_objs = array(); 
+                $cehckdataempty = true;  
+                if(empty($resources)){
+                    $cehckdataempty = false;
+                }
+                $data_objs = array(); 
                 $allcontent = array(); 
                 $allimgurl = array();
                 $pagelist = array();
-                $headingTerm = $this->siteSetting('browse_heading_property_term');
-                $bodyTerm = $this->siteSetting('browse_body_property_term');
-                $contentlist = $resource->value('bibo:content',['all' => true]);
+                $contentlist = array();
+                $medialist = array();
+                if(empty($resource->value('bibo:content'))){
+
+                }else{
+                    $contentlist = $resource->value('bibo:content',['all' => true]);
+                }
                 $medialist = $resource->media();
-                foreach ($contentlist as $content):
+                foreach ((array)$contentlist as $content):
                     array_push($allcontent,$content);
                 endforeach;
-                //$imglist = $media->originalUrl();
 
                 foreach ($medialist as $media):
                     array_push($allimgurl,$media->originalUrl());
@@ -34,79 +44,139 @@
                     $pageend = (string)($resource->value('bibo:pageEnd'));
                     $pagecount = intval($pageend) - intval($pagestart);
                     for($i = 0; $i <= $pagecount;$i++){
-                       
                         array_push($pagelist,intval($pagestart) + $i);
                     }
                 }
                 $id = $resource->id();
                 $title = $resource->displayTitle();
-                $date = $resource->value('dcterms:date', ['all' => true]);
-                array_push($date_objs,[$id=>['id'=>$id,'title'=>$title,'content'=>$allcontent,'img'=>$allimgurl,'pagelist'=>$pagelist]]);
+                array_push($data_objs,[$id=>['id'=>$id,'title'=>$title,'content'=>$allcontent,'img'=>$allimgurl,'pagelist'=>$pagelist]]);
        ?>
     <div id="app">
         <el-container v-loading="loading" class="reader__wrapper" :style="{'padding-top': marginGap + 'px'}">
-            <el-header>{{ item_title }}
+             <el-header>
+                <span id="headertitle">{{ item_title }}</span>
                 <el-radio-group  fill="#4F4F4F	" id="readermenu" v-model="isCollapse" style="margin-bottom: 1%;">
-                    <el-radio-button :label="true">關閉選單</el-radio-button>
-                    <el-radio-button :label="false">開啟選單</el-radio-button>
+                    <el-radio-button :label="true"><?= $translate('Close Menu')?></el-radio-button>
+                    <el-radio-button :label="false"><?= $translate('Open Menu')?></el-radio-button>
                 </el-radio-group>
             </el-header>
             
         <el-main class="flex">
             <el-menu :default-active="activeIndex" class="el-menu-vertical-demo reader__settings" mode="vertical"  @select="handleSelect" :collapse="isCollapse" collapse-transition>
         <el-submenu index="1">
-            <template slot="title">排版設定</template>
-            <el-menu-item index="1-1">字型大小
+            <template slot="title"><?= $translate('Setting')?></template>
+            <el-menu-item index="1-1"><?= $translate('Font Size') ?>
                 <el-input-number v-model="fontSize" size="small" 
                                  data-bind="" @change="handleChange" :min="8" :max="30">
                 </el-input-number>
             </el-menu-item>
-            <el-menu-item index="1-2">字距寬度
+            <el-menu-item index="1-2"><?= $translate('Word Spacing') ?>
                 <el-input-number v-model="letterspacing" size="small" 
                                  data-bind="" @change="handleChange" :min="1" :max="10">
                 </el-input-number>
             </el-menu-item>
-            <el-menu-item index="1-3">行距高度
+            <el-menu-item index="1-3"><?= $translate('Line spacing') ?>
                 <el-input-number v-model="plineheight" size="small" 
                                  data-bind=""@change="handleChange" :min="20" :max="50">
                 </el-input-number>
             </el-menu-item>
         </el-submenu>
         <el-submenu index="2">
-            <template slot="title">圖片設定</template>
+            <template slot="title"><?= $translate('Image Setting') ?></template>
             <el-menu-item index="2-1"><el-switch
                 v-model="displayImg"
-                active-text="顯示圖片"
-                inactive-text="不顯示圖片">
+                active-text="<?= $translate('Display') ?>"
+                inactive-text="<?= $translate('None Display') ?>">
+                </el-switch>
+            </el-menu-item>
+        </el-submenu>
+        <el-submenu v-show="displayNameLinkData" index="3">
+            <template slot="title"><?= $translate('Name Detection') ?></template>
+            <el-switch
+                v-model="activeNameLinkData"
+                active-text="<?= $translate('Active') ?>"
+                inactive-text="<?= $translate('Close') ?>">
                 </el-switch>
             </el-menu-item>
         </el-submenu>
 
         </el-menu >
-            <div class="split" id="one" :style="" v-if="displayImg">
+            <div class="split" id="one" :style="" v-show="displayImg">
                 <div class="image" v-if="displayPdf">
                     <embed :src=imgurl[current_img] type="application/pdf" style="height:90vh;width:100%;">
                 </div>
                 <div class="image" v-if="displayPic">
                     <div class="block" style="line-height:0px;">
-                        <div style="color:#878787;font-size: 20px;"><i class="el-icon-zoom-in"></i>滑鼠移到圖片上即可放大檢視</div>
+                        <div style="color:#878787;font-size: 20px;"><i class="el-icon-zoom-in"></i><?= $translate('Mouse on and zoom in') ?></div>
                         <zoom-on-hover :img-normal=imgurl[current_img] :scale=2 ></zoom-on-hover>
                     </div>
                 </div>
             </div>
                
-            <div class="reader__content split" id="two" v-show="displayContent" :style="{'width': contentWidth + 'px', 'height': contentHeight + 'px', 'font-size': fontSize + 'px', 'line-height': lineHeight}" >
-                <div class="reader__text textDiv" v-html="currentContent" 
-                    :style="{'margin-top': -1 * fontSize * lineHeight * activePage.topHiddenLineCount + 'px','height': (contentHeight * 2.0 )  + 'px','letter-spacing' : letterspacing + 'px'}"></div>
+            <div class="reader__content split" id="two" v-show="displayContent" 
+                 :style="{'width': contentWidth + 'px', 'height': contentHeight + 'px', 'font-size': fontSize + 'px', 'line-height': lineHeight}" >
+                <!--div class="reader__text textDiv" v-html="currentContent" ref="currentContentContainer"
+                    :style="{'margin-top': -1 * fontSize * lineHeight * activePage.topHiddenLineCount + 'px','height': (contentHeight * 2.0 )  + 'px','letter-spacing' : letterspacing + 'px'}"></div-->
+                <div class="reader__text textDiv" ref="currentContentContainer" 
+                     :style="{'margin-top': -1 * fontSize * lineHeight * activePage.topHiddenLineCount + 'px','height': (contentHeight * 2.0 )  + 'px','letter-spacing' : letterspacing + 'px'}">
+                    <div :page-index="page_index" class="page" 
+                        :count="page_index" v-for="(page, page_index) in item_all_content" 
+                        >
+                        <p v-if="item_page_no.length > 0" class="page_title">{{item_page_no[page_index]}}</p>
+                        <p v-else class="page_title">{{item_page_no[page_index]}}</p>
+                        <p :para-index="parr_index"  v-for="(parr,parr_index) in page" :style="{'line-height' : plineheight + 'px'}">
+                            <!--span v-for="(word, index) in parr"  :word-index=word.index :ner-tag=word.tag>{{word.word}}</span-->
+                            <template v-for="(wordGroup, index) in parrGroup(parr)" >
+                                <template v-if="wordGroup[0].tag == 'PER'">
+                                    <el-popover
+                                        placement="bottom"
+                                        trigger="click"
+                                        :wordIndex=wordGroup[0].index
+                                    >
+                                        <div style="height: 30vh;width: 50vh;overflow: auto;">
+                                            <template v-for="(item, index) in currentSearchLinkData">
+                                                <div>
+                                                    <i class="el-icon-view el-icon--right"></i>
+                                                        <el-link :href=item.title_id 
+                                                            target="_blank" 
+                                                            type="primary"
+                                                        ><?= $translate('Check Item') ?></el-link>：
+                                                        <div v-html="highlight(item.provenance,wordGroup[0].link_term,item.source_name)"></div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <span slot="reference" class="nertag ner-person" >
+                                            <template v-for="(word,word_index) in wordGroup">
+                                                <span :word-index=word.index :ner-tag=word.tag 
+                                                    v-on:click="getLinkData(word.index)"
+                                                    >{{ word.word }}</span>
+                                            </template>
+                                        </span>
+                                    </el-popover>
+                                </template>
+                                <template v-else-if="wordGroup[0].tag == 'O'">
+                                    <template v-for="word in wordGroup">
+                                        <span :word-index=word.index :ner-tag=word.tag>{{ word.word }}</span>
+                                    </template>
+                                </template>
+                                <!--span v-if="word.tag === 'O'" :word-index=word.index :ner-tag=word.tag>{{word.word}}</span>
+                                <template v-else><span :word-index=word.index :ner-tag=word.tag>{{word.word}}</span></template>
+                                -->
+                            </template>
+                                
+                        </p>
+                        
+                    </div>
+                </div>
             </div>
          </el-main>
       </el-container>
     </div>
         
     <script>
-    
     //將資料暫存  傳到vue上面
-    let _data = <?php echo json_encode($date_objs)?>;
+    let checkDataEmpty =  <?php echo json_encode($cehckdataempty)?>;
+    let _data = <?php echo json_encode($data_objs)?>;
     console.log(_data)
     let all_data = {}
     let all_item_list = []
@@ -219,6 +289,7 @@
         .reader__text p {
           margin: 0;
           text-align: left;
+          text-indent: 2em;
         }
         .reader__infor{
           position: relative;
@@ -228,20 +299,9 @@
           text-align: center;
         }
         .reader__text p{
-          text-indent: 2em;
+          
         }
-        .ner[ner="loc"]{
-          cursor: pointer;
-          color: red;
-        }
-        .ner[ner="per"]{
-          cursor: pointer;
-          color: green;
-        }
-        .ner[ner="org"]{
-          cursor: pointer;
-          color: blue;
-        }
+        
         .el-header, .el-footer {
           background-color: #272727;
           color: white;
@@ -252,6 +312,10 @@
           height: 70px !important;
           font-size: 28px;
         }
+        #headertitle{
+            position: relative;
+            left: 0vw;
+        } 
         .el-main {
           background-color: #E9EEF3;
           color: #878787;
@@ -301,5 +365,26 @@
        
         .el-input input{
             width: 100%;
+        }
+        
+        .nertag{
+            cursor: pointer;
+            color: #009e28;
+        }
+        
+        .nertag:hover{
+            cursor: pointer;
+            color: #008f24;
+        }
+        
+        .currentTerm {
+            color: green;
+        }
+        .linkTerm {
+            color: red;
+        }
+        
+        .image img{
+            display: block !important;
         }
     </style>

@@ -8,7 +8,7 @@
         },
         data () {
           return {
-            // 间距高度宽度等
+            // 版面設定值
             marginGap: 20,
             contentMinHeight: 350,
             contentHeight: 0,
@@ -16,22 +16,18 @@
             contentMinWidth: 400,
             contentWidth: 0,
             resizeDebounce: 500,
-            // 文本样式
             fontSize: 20,
             lineHeight: 2,
             letterspacing: 1,
             plineheight: 30,
-            // 加载状态
+            // 版面狀態
             loading: false,
-            // 文本数据
-            maxLineCount: -1,
-            pageList: [],
-            // 阅读状态
             page: 1, // 当前阅读页，永远比index大1
             activePage: {},
-            anchor: {},
             activeIndex: '1', // element UI
             activeIndex2: '1', // element UI
+            //資料本體
+            maxLineCount: -1,
             alldata:all_data,
             item_list: all_item_list, //目錄
             item_author : '',
@@ -39,89 +35,36 @@
             item_title : '',
             item_content : [],
             item_page_no : '',
-            fit: 'none',
+            item_all_content : [], //整理後的資料
+            NER_data : [], //NER原始人名
+            NER_tag : [],
+            currentSearchLinkData : {},
+            //設定
             current_img: 0,
             imgurl: [],
             displayImg:true,
             displayPdf:false,
             displayPic:true,
             displayContent:true,
+            displayNameLinkData:config['displayNameLinkData'],
+            activeNameLinkData:false,
+            activeNameLinkURL:config['NameLinkDataSeverURL'],
+            peopleLinkData:config['PeopleLinkData'],
             isCollapse: true,
             loading: true,
             drawer: false,
+            checkDataEmpty:checkDataEmpty,
             search:'',
+            res:'',
           }
         },
         computed: {
-          paragraphArr () {
-            let textObj = this.item_content
-            let lineheight = this.plineheight
-            let nertag = []
-            let pageArr = []
-            let wordsCount = 0
-            
-            for (let pidx in textObj) {
-              let pArr = textObj[pidx].split('\n')
-              // let pArr = this.text.split('\n')
-              let paragraphArr = []
-              let contentLength = 0
-              pArr.forEach(function (paragraph, idx) {
-                let content = paragraph.trim()
-                contentLength = content.length
-                // 为每个字添加index定位信息
-                // 加入TAG資訊
-                if (nertag.length > 0) {
-                  content = content.split('').map((word, index) => getHtmlString('span', word, {
-                    'word-index': wordsCount + index,
-                    'ner-tag': nertag[wordsCount + index]
-                  }, nertag, wordsCount + index)).join('')
-                } else {
-                  content = content.split('').map((word, index) => getHtmlString('span', word, {
-                    'word-index': wordsCount + index,
-                    'ner-tag': 'O'
-                  }, nertag, wordsCount + index)).join('')
-                }
-                paragraphArr.push({
-                  html: getHtmlString('p', content, {
-                    'para-index': idx,
-                    'style' : 'line-height : '+lineheight+'px',
-                  })
-                })
-                wordsCount += contentLength
-              })
-              let paragraphhtml = ''
-              if(this.item_page_no.length != 0){
-                  paragraphhtml += '<p class="page_title" >'+this.item_page_no[pidx]+'</p>'
-              }else{
-                  paragraphhtml += '<p class="page_title" ></p>'
-              }
-              for (var i in paragraphArr) {
-                paragraphhtml = paragraphhtml + paragraphArr[i].html
-              }
-              pageArr.push({
-                html: getHtmlString('div', paragraphhtml, {
-                  'page-index': pidx,
-                  'class' : 'page',
-                  'count' : pidx,
-                }),
-                wordStartIdx: wordsCount,
-                wordEndIdx: wordsCount - 1
-              })
-            }
-            return pageArr
-          },
-          currentContent () {
-            // 處理頁面
-            let htmlString = ''
-            
-            for (let i in this.paragraphArr) {
-              htmlString += this.paragraphArr[i].html
-            }
-            return htmlString
-          }
-          
+                    
         },
         watch: {
+            displayImg:function(val){
+               
+            },
             current_img:function (val){
                 let img = this.imgurl[val]
                 let name = this.getFileExtension(img)              
@@ -137,6 +80,11 @@
                 //item_author : current_item_author,
                 console.log(this.alldata)
                 console.log(val)
+                //重置選項
+                this.activeNameLinkData = false
+                this.NER_data = []
+                this.NER_tag = []
+                
                 this.item_title = this.alldata[val]['title']
                 this.item_page_no = this.alldata[val]['pagelist']
                 this.imgurl = this.alldata[this.item_id]['img']
@@ -146,10 +94,46 @@
                     _item_content.push(_item_content_list[i]['@value']);
                 }
                 this.item_content = _item_content
-
-            }
+                this.setContentData()
+            },
+            //馬來西亞特別版
+            activeNameLinkData:function(val){
+                let _content = this.item_content
+                if(val == true){
+                    if((this.NER_data).length === 0){
+                        //如果沒有取得過名字資料，就去取用
+                        //'http://omeka-dev.ccstw.nccu.edu.tw:7065/getrelationship/' + item_id,
+                         this.$http.get(this.activeNameLinkURL + this.item_id).then((res) =>{
+                            //console.log(res.data)
+                            let NER_arry = []
+                            for(let i in res.data){
+                                NER_arry.push(res.data[i]['source_name'])
+                            }
+                            NER_arry = NER_arry.filter(function(element, index, arr){
+                                return arr.indexOf(element) === index
+                            })
+                            this.NER_data = NER_arry
+                            console.log(this.NER_data)
+                            this.createNERtag()
+                         }).catch((res)  => {
+                            console.log('ERROR RESQUEST');
+                        });
+                    }else{
+                        this.setContentData()
+                    }
+                }
+                else{
+                    this.setContentData()
+                }
+            },
+            NER_tag:function (val){
+                this.setContentData()
+                console.log('reset')
+            },
         },
-        mounted () {            
+        mounted () {    
+            console.log(this.checkDataEmpty)
+            if(this.checkDataEmpty == true) return
             this.item_title = this.alldata[this.item_id]['title']
             this.item_page_no = this.alldata[this.item_id]['pagelist']
             let _item_content_list = this.alldata[this.item_id]['content']
@@ -161,11 +145,9 @@
             }
             this.item_content = _item_content
             
-            
+            this.setContentData()
             this.getContentSize()
-            // 窗口resize时要自适应高度，不产生滚动条
-            this._resizeHandler = this.onWindowResize.bind(this)
-            window.addEventListener('resize', this._resizeHandler)
+           
             document.querySelector('#two').addEventListener('scroll', this.handleScroll)
             
             this.loading = false
@@ -180,130 +162,285 @@
             }
         },
         updated(){
+            if(checkDataEmpty == false) return
             this.$el.querySelector(".page_title").parentElement.classList.add('active')
-        },
-        beforeDestroy () {
-          window.removeEventListener('resize', this._resizeHandler)
-        },
+        },        
         methods: {
-          select_item(index, row){
-              console.log(row);
-              this.item_id = row['item_id']
-          },
-          checkImg(){
-              let img = imgurl[current_img]
-              let name = getFileExtension(img)
-              console.log(name)
-          },
-          handleChange(value) {
-            console.log(value);
-          },
-          handleScroll (event) {
-            let now_page_no = 0
-            let containerlist = this.$el.querySelectorAll(".page_title")
-            let scroll_pos = event.srcElement.scrollTop
-            for (i = 0; i < containerlist.length; ++i) {
-                let _container_pos = containerlist[i].parentElement.offsetTop
-                containerlist[i].parentElement.classList.remove('active')
-                if( (scroll_pos + 100 ) > _container_pos){
-                    now_page_no = i
+            getLinkData(word_index){
+                let _wordData = this.item_all_content
+                let _linkTerm = ''
+                for(let i in _wordData){
+                    for(let a in _wordData[i]){
+                        for(let x in _wordData[i][a]){
+                            if(_wordData[i][a][x].index === word_index)
+                               _linkTerm =  _wordData[i][a][x].link_term
+                       }
+                    }
                 }
-                //console.log(containerlist[i].$refs)
-                //console.log(_container_pos)
-            }
-            containerlist[now_page_no].parentElement.classList.add('active')
-            this.current_img = now_page_no
-            // Any code to be executed when the window is scrolled
+                //console.log('search:'+_linkTerm)
+                this.$http.get(this.peopleLinkData+_linkTerm).then((res) =>{
+                    console.log(res)
+                    let _result = res.body
+                    this.currentSearchLinkData = _result.filter(function(item, index, array){
+                        return item.source_name !== _linkTerm;       
+                      });
+                      //console.log(this.currentSearchLinkData)
+                }).catch((res)  => {
+                    console.log('ERROR RESQUEST');
+                });
+            },
+            setContentData(){
+                let textObj = this.item_content
+                let nertag = this.NER_tag
+                console.log(nertag)
+                let pageArr = [] //每頁整理過的內文，包含個段落
+                let wordsCount = 0  //總字數計算
+                for (let pidx in textObj) {
+                    let pageWordsCount = 0 //頁面字數計算
+                    let pArr = textObj[pidx].split('\n')
+                    
+                    let paragraphArr = []
+                    let contentLength = 0 //段落計算
+                    let parrWordsCount = 0  //段落字數計算
+                    for(let a in pArr){
+                        let wordArr = [] //每小段文字
+                        _parrWord = pArr[a].replace(/\r/g,"")
+                        for(let x in _parrWord){
+                            if(this.activeNameLinkData == true){
+                                //console.log(pArr[a][x] + '/' + nertag[pidx][parrWordsCount]['tag'])
+                                wordArr.push({'index':wordsCount,'word':_parrWord[x],'tag':nertag[pidx][parrWordsCount]['tag'],'link_term':nertag[pidx][parrWordsCount]['link_term']})
+                            }else{
+                                wordArr.push({'index':wordsCount,'word':_parrWord[x],'tag':'O'})
+                            }
+                            parrWordsCount++
+                            wordsCount++
+                        }
+                        paragraphArr.push(wordArr)
+                        contentLength++
+                    }
+                    pageArr.push(paragraphArr)
+                }
+                console.log(pageArr)
+                this.item_all_content = pageArr
+            },
+            select_item(index, row){
+                console.log(row)
+                this.item_id = row['item_id']
+            },
+            checkImg(){
+                let img = imgurl[current_img]
+                let name = getFileExtension(img)
+            },
+            handleChange(value) {
+              console.log(value)
+            },
+            handleScroll (event) {
+              let now_page_no = 0
+              let containerlist = this.$el.querySelectorAll(".page_title")
+              let scroll_pos = event.srcElement.scrollTop
+              for (i = 0; i < containerlist.length; ++i) {
+                  let _container_pos = containerlist[i].parentElement.offsetTop
+                  containerlist[i].parentElement.classList.remove('active')
+                  if( (scroll_pos + 100 ) > _container_pos){
+                      now_page_no = i
+                  }
+                  //console.log(containerlist[i].$refs)
+                  //console.log(_container_pos)
+              }
+              containerlist[now_page_no].parentElement.classList.add('active')
+              this.current_img = now_page_no
+              // Any code to be executed when the window is scrolled
+            },
+            handleSelect(key, keyPath) {
+                //element ui
+                console.log(key, keyPath);
+            },
+            getContentSize () {
+              // 计算内容高度
+              let windowHeight = window.innerHeight
+              let minHeight = this.contentMinHeight
+              let contentHeight = Math.max(windowHeight, minHeight) - this.marginGap * 2
+              let maxLineCount = Math.floor(contentHeight / (this.fontSize * this.lineHeight))
+              this.maxLineCount = maxLineCount
+              this.contentHeight = maxLineCount * this.fontSize * this.lineHeight
+              // 计算内容宽度
+              let windowWidth = window.innerWidth
+              let widthBoundary = this.contentWidthBoundary
+              let widthRadio
+              if (windowWidth > widthBoundary) widthRadio = 0.6
+              else if (windowWidth > this.contentMinWidth) {
+                widthRadio = 0.6 + 0.4 * (Math.abs(widthBoundary - windowWidth) / (widthBoundary - this.contentMinWidth))
+              } else widthRadio = 1
+              let wantedWidth = windowWidth * widthRadio
+              this.contentWidth = windowWidth > this.contentMinWidth ? wantedWidth : windowWidth
+            },
+            getFileExtension(filename) {
+              return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
+            },
+            createNERtag(){
+              let _NER_tag = []
+              let _word_index = 0   //單字的索引
+              for(let i in this.item_content){
+                  let _single_content = this.item_content[i] //單一段文章
+                  _single_content = _single_content.replace(/\r\n/g,"")
+                  let _single_NER_tag = []
+                  let _check_index = 0
+                  let _check_tag = false //這個位置是否有標注
+                  let _check_ner_term = ''  //紀錄關聯詞彙
+                  //每個字 
+                  for(let x in _single_content){
+                      let _current_char = _single_content[x] //現在的字元
+                      //console.log('index:' + x + '/word:' + _current_char)
+                      for(let a in this.NER_data){
+                            let check_term = this.NER_data[a] //每個要偵測的詞
+                            let n_gram = check_term.length                        
+                            //偵測每個字+n_gram
+                            let _selected_char = '' //被偵測的字
+                            for(let z = 0 ; z < n_gram; z++){
+                                if( (parseInt(z) + parseInt(x)) > _single_content.length) break
+                                _selected_char += _single_content[z + parseInt(x)]
+                            }
+                            //console.log(_selected_char + '/' + check_term)
+                            if(_selected_char == check_term){
+                                _check_tag = true
+                                _check_index = parseInt(x) + n_gram - 1
+                                _check_ner_term = _selected_char
+                                //console.log('check same!,par:'+ i +',start:' + x + ',end:' + _check_index)
+                                //console.log(_selected_char + '/' + check_term)
+                            }
+                      }
+                      if(_check_tag == true){
+                        _single_NER_tag.push({'index':_word_index,'tag':'PER','link_term':_check_ner_term})
+                      }else{
+                        _single_NER_tag.push({'index':_word_index,'tag':'O','link_term':''})
+                      }
+                      //標註完了就重置
+                      if(parseInt(x) == _check_index){
+                        _check_tag = false
+                      }
+                      _word_index++
+                  }
+                  _NER_tag.push(_single_NER_tag)
+              }  
+              //console.log(_NER_tag)
+              this.NER_tag = _NER_tag
+            },
+            checkTag(val){
+                if(val === 'PER'){
+                    return  true
+                }
+            },  
+            parrGroup (val) {
+              let output = []
+              let temp = []
+              let lastTag = null
+              if (!val) { return [] }
+              val.forEach((word, i) => {
+                let isTagO = (word.tag === 'PER')
+                if (i === 0) {
+                    temp.push(word)
+                    lastTag = isTagO
+                    return false
+                }
+                if (lastTag !== isTagO) {
+                    output.push(temp)
+                    temp = []
+                }
+                temp.push(word)
+                lastTag = isTagO
+                
+                if (i === val.length - 1) {
+                    output.push(temp)
+                }
+              })
+              return output
           },
-          handleSelect(key, keyPath) {
-              //element ui
-              console.log(key, keyPath);
-          },
-          onWindowResize () {
-            // 防抖
-            if (this._resizeTimer) {
-              clearTimeout(this._resizeTimer)
-            }
-            this._resizeTimer = setTimeout(this.getContentSize.bind(this), this.resizeDebounce)
-          },
-          getContentSize () {
-            // 计算内容高度
-            let windowHeight = window.innerHeight
-            let minHeight = this.contentMinHeight
-            let contentHeight = Math.max(windowHeight, minHeight) - this.marginGap * 2
-            let maxLineCount = Math.floor(contentHeight / (this.fontSize * this.lineHeight))
-            this.maxLineCount = maxLineCount
-            this.contentHeight = maxLineCount * this.fontSize * this.lineHeight
-            // 计算内容宽度
-            let windowWidth = window.innerWidth
-
-            let widthBoundary = this.contentWidthBoundary
-            let widthRadio
-            if (windowWidth > widthBoundary) widthRadio = 0.6
-            else if (windowWidth > this.contentMinWidth) {
-              widthRadio = 0.6 + 0.4 * (Math.abs(widthBoundary - windowWidth) / (widthBoundary - this.contentMinWidth))
-            } else widthRadio = 1
-            let wantedWidth = windowWidth * widthRadio
-            this.contentWidth = windowWidth > this.contentMinWidth ? wantedWidth : windowWidth
-
-          },
-          getFileExtension(filename) {
-            return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
+            highlight(provenance,currentTerm,link_term) {
+                if(!link_term) {
+                    return provenance;
+                }
+                provenance = provenance.replace(new RegExp(currentTerm, "gi"), match => {
+                    return '<span class="currentTerm">' + match + '</span>';
+                });
+                provenance = provenance.replace(new RegExp(link_term, "gi"), match => {
+                    return '<span class="linkTerm">' + match + '</span>';
+                });
+                return provenance
+            },
+            
+            checkNextTag(page_index,parr_index,word_index){
+                if(this.NER_tag.length > 0) {
+                    let _wordData = this.item_all_content
+                    let _check_tag = ''
+                    //console.log(page_index+'/'+parr_index+'/'+word_index)
+                    //console.log(_check_tag = _wordData[page_index][parr_index][word_index]['word'])
+                    if(_wordData[page_index][parr_index][word_index]['tag'] == 'O'){
+                        if((word_index+1) == Object.keys(_wordData[page_index][parr_index]).length){
+                            if((parr_index + 1 ) == Object.keys(_wordData[page_index]).length){
+                                if((page_index + 1 ) == Object.keys(_wordData).length){
+                                    return false
+                                }else{
+                                    _check_tag = _wordData[page_index+1][0][0]['tag']
+                                }
+                            }else{
+                                if(_check_tag = _wordData[page_index][parr_index+1][0] == null) return
+                                _check_tag = _wordData[page_index][parr_index+1][0]['tag']
+                            }
+                        }else{
+                            _check_tag = _wordData[page_index][parr_index][word_index+1]['tag']
+                        }
+                        if(_check_tag == 'PER'){
+                            return true
+                        }else if(_check_tag == 'O'){
+                            return false
+                        }else{
+                            return false
+                        }
+                    }else{
+                        return false
+                    }
+                }
+            },
+            checkPrevTag(page_index,parr_index,word_index){
+                if(this.NER_tag.length > 0) {
+                    let _wordData = this.item_all_content
+                    let _check_tag = ''
+                    if(_wordData[page_index][parr_index][word_index]['tag'] == 'O'){
+                        if((word_index+1) == Object.keys(_wordData[page_index][parr_index]).length){
+                            if((parr_index + 1 ) == Object.keys(_wordData[page_index]).length){
+                                if((page_index + 1 ) == Object.keys(_wordData).length){
+                                    return false
+                                }else{
+                                    _check_tag = _wordData[page_index+1][0][0]['tag']
+                                }
+                            }else{
+                                _check_tag = _wordData[page_index][parr_index+1][0]['tag']
+                            }
+                        }else{
+                            _check_tag = _wordData[page_index][parr_index][word_index+1]['tag']
+                        }
+                        if(_check_tag == 'PER'){
+                            return false
+                        }else if(_check_tag == 'O'){
+                            return true
+                        }else{
+                            return true
+                        }
+                    }else{
+                        return false
+                    }
+              }  
           }
-        }    
+       }
     });
     
-    //啟動滑動條
-    Split(['#one', '#two'], {
-        gutterSize: 5,
-        sizes: [60,40]
-    });
-         
-    function getHtmlString (name, content, attributes = {}, nertag = [], wordindex) {
-        let attrArr = []
-        let index = 0
-        index = wordindex
-        let addfront = ''
-        let addback = ''
-        if (nertag.length > 0) {
-          if (nertag[index] === 'O') {
-            if (index > 0) {
-              if (nertag[index - 1] !== 'O') {
-                addfront = '</span>'
-              } else {
-                addback = '</span>'
-              }
-            }
-          } else if (nertag[index] === 'B-PER') {
-            if (nertag[index - 1] !== 'O') {
-              addfront = '</span><span class="ner" ner="per">'
-            } else {
-              addfront = '<span class="ner" ner="per">'
-            }
-          } else if (nertag[index] === 'B-ORG') {
-            if (nertag[index - 1] !== 'O') {
-              addfront = '</span><span class="ner" ner="org">'
-            } else {
-              addfront = '<span class="ner" ner="org">'
-            }
-          } else if (nertag[index] === 'B-LOC') {
-            if (nertag[index - 1] !== 'O') {
-              addfront = '</span><span class="ner" ner="loc">'
-            } else {
-              addfront = '<span class="ner" ner="loc">'
-            }
-          } else {
-            if (nertag[index + 1] === 'O') {
-              addback = '</span>'
-            }
-          }
-        }
-        for (let key in attributes) {
-          attrArr.push(` ${key}="${attributes[key]}"`)
-        }
-        return addfront + `<${name}${attrArr.join('')}>${content}</${name}>` + addback
-      }
-      
+    if(checkDataEmpty == false){
+         //啟動滑動條
+        Split(['#one', '#two'], {
+            gutterSize: 5,
+            sizes: [60,40]
+        });
+    }     
 }
             
 </script>    

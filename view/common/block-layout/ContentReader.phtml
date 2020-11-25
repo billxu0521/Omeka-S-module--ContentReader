@@ -1,65 +1,86 @@
     <div style="position:relative;">
 	<?php
+                //這是在page使用的
                 $translate = $this->plugin('translate');
-		
                 $this->headScript()->appendFile($this->assetUrl('js/vue.min.js', 'ContentReader'));
                 $this->headScript()->appendFile($this->assetUrl('js/element/element.js', 'ContentReader'));
                 $this->headScript()->appendFile($this->assetUrl('js/element/icon.js', 'Reader'));
                 $this->headScript()->appendFile($this->assetUrl('js/split.js', 'ContentReader'));
                 $this->headScript()->appendFile($this->assetUrl('js/zoomOnHover.js', 'ContentReader'));
-                
+                $this->headScript()->appendFile($this->assetUrl('js/vue-resource.min.js', 'ContentReader'));
+                $this->headScript()->appendFile($this->assetUrl('js/config.js', 'ContentReader'));
+
                 $this->headLink()->prependStylesheet($this->assetUrl('css/element/index.css', 'ContentReader'));
                 $this->headLink()->prependStylesheet($this->assetUrl('css/element/icon.css', 'ContentReader'));
                 $this->headLink()->prependStylesheet($this->assetUrl('css/zoomOnHover.css', 'ContentReader'));
                 
                 $headingTerm = $this->siteSetting('browse_heading_property_term');
                 $bodyTerm = $this->siteSetting('browse_body_property_term');
-                $date_objs = array(); 
-                foreach ($this->resources as $resource):
-                    $contentlist = $resource->value('bibo:content',['all' => true]);
+                $data_objs = array(); 
+                $cehckdataempty = false;  
+                if(empty($resources)){
+                    $cehckdataempty = true;
+                }
+                foreach ($resources as $resource):
+                    $cehckdataempty = false;
+                    //檢查是否為item
+                    $type = $resource->valueRepresentation()['value_resource_name'];
+                    if($type != 'items'){
+                        $cehckdataempty = true;  
+                        continue ;
+                    }
+                    //echo json_encode($resource);
+                    $contentlist = array();
                     $allcontent = array(); 
                     $allimgurl = array(); 
                     $pagelist = array();
-                    $medialist = $resource->media();
-                    foreach ($contentlist as $content):
+                    $medialist = array();
+                    if(empty($resource->value('bibo:content'))){
+
+                    }else{
+                        $contentlist = $resource->value('bibo:content',['all' => true]);
+                    }
+                    
+                    foreach ((array)$contentlist as $content):
                         array_push($allcontent,$content);
                     endforeach;
-                    //$imglist = $media->originalUrl();
-                    
+
+                    $medialist = $resource->media();   
                     foreach ($medialist as $media):
                         array_push($allimgurl,$media->originalUrl());
                     endforeach;
-                    
-                    if($resource->value('bibo:pageStart') != null){
+
+                    if(empty($resource->value('bibo:pageStart'))){
                         $pagestart = (string)($resource->value('bibo:pageStart'));
                         $pageend = (string)($resource->value('bibo:pageEnd'));
                         $pagecount = intval($pageend) - intval($pagestart);
                         for($i = 0; $i <= $pagecount;$i++){
-
                             array_push($pagelist,intval($pagestart) + $i);
                         }
                     }
-                    
+
                     $id = $resource->id();
                     $title = $resource->displayTitle();
-                    $date = $resource->value('dcterms:date', ['all' => true]);
-                    array_push($date_objs,[$id=>['id'=>$id,'title'=>$title,'content'=>$allcontent,'img'=>$allimgurl,'pagelist'=>$pagelist]]);
+                    array_push($data_objs,[$id=>['id'=>$id,'title'=>$title,'content'=>$allcontent,'img'=>$allimgurl,'pagelist'=>$pagelist]]);
                 endforeach;
+                
        ?>
      <div id="app">
-        <el-container v-loading="loading" class="reader__wrapper" :style="{'padding-top': marginGap + 'px'}">
-            <el-header>{{ item_title }}
+        <el-container  v-if="checkDataEmpty == true"  >
+                      你沒有選擇任何文本。
+        </el-container>
+        <el-container v-loading="loading" v-else-if="checkDataEmpty == false" class="reader__wrapper" :style="{'padding-top': marginGap + 'px'}" >
+            <el-header>
+                <span id="headertitle">{{ item_title }}</span>
                 <el-radio-group  fill="#4F4F4F	" id="readermenu" v-model="isCollapse" style="margin-bottom: 1%;">
                     <el-radio-button :label="true">關閉選單</el-radio-button>
                     <el-radio-button :label="false">開啟選單</el-radio-button>
                 </el-radio-group>
                 <el-button @click="drawer = true" id="item_list_btn">目錄</el-button>
-
-                 
             </el-header>
                                   
         <el-main class="flex">
-            <el-menu :default-active="activeIndex2" class="el-menu-vertical-demo reader__settings" mode="vertical"  @select="handleSelect" :collapse="isCollapse" collapse-transition>
+            <el-menu :default-active="activeIndex" class="el-menu-vertical-demo reader__settings" mode="vertical"  @select="handleSelect" :collapse="isCollapse" collapse-transition>
             <el-submenu index="1">
                 <template slot="title">排版設定</template>
                 <el-menu-item index="1-1">字型大小
@@ -87,6 +108,15 @@
                     </el-switch>
                 </el-menu-item>
             </el-submenu>
+            <el-submenu index="3">
+            <template slot="title">啟動人名偵測</template>
+            <el-switch
+                v-model="activeNameLinkData"
+                active-text="啟動"
+                inactive-text="關閉">
+                </el-switch>
+            </el-menu-item>
+        </el-submenu>
         </el-menu >
         <el-drawer
         title="選擇條目"
@@ -97,30 +127,23 @@
         id="item_list">
             <el-table
             :data="item_list.filter(data => !search || data.title.toLowerCase().includes(search.toLowerCase()))"
-            style="width: 100%">
-                <el-table-column
+            style="width: 100%"><el-table-column
                 type=index>
-                </el-table-column>
-                <el-table-column
+                </el-table-column><el-table-column
                 prop="title"
-                label="標題">
-                </el-table-column>
+                label="標題"></el-table-column>
                 <el-table-column label="操作">
-                    <template slot="header" slot-scope="scope">
-                        <el-input
+                    <template slot="header" slot-scope="scope"><el-input
                           v-model="search"
                           size="mini"
-                          placeholder="输入关键字搜索"/>
-                    </template>
-                    <template slot-scope="scope">
-                        <el-button
-                        type=index
-                        @click="select_item(scope.$index, scope.row)">前往</el-button>
+                          placeholder="输入關鍵詞搜索"/>
+                    </template><template slot-scope="scope">
+                        <el-button type=index @click="select_item(scope.$index, scope.row)">前往</el-button>
                     </template>
                 </el-table-column>            
             </el-table>
         </el-drawer>
-            <div class="split" id="one" :style="" v-if="displayImg">
+            <div class="split" id="one" :style="" v-show="displayImg">
                 <div class="image" v-if="displayPdf">
                     <embed :src=imgurl[current_img] type="application/pdf" style="height:90vh;width:100%;">
                 </div>
@@ -131,37 +154,101 @@
                     </div>
                 </div>
             </div>
-               
-            <div class="reader__content split" id="two" v-show="displayContent" :style="{'width': contentWidth + 'px', 'height': contentHeight + 'px', 'font-size': fontSize + 'px', 'line-height': lineHeight}" >
-                <div class="reader__text textDiv" v-html="currentContent" 
-                    :style="{'margin-top': -1 * fontSize * lineHeight * activePage.topHiddenLineCount + 'px','height': (contentHeight * 2.0 )  + 'px','letter-spacing' : letterspacing + 'px'}"></div>
-            </div>
+             <div class="reader__content split" id="two" v-show="displayContent" 
+                 :style="{'width': contentWidth + 'px', 'height': contentHeight + 'px', 'font-size': fontSize + 'px', 'line-height': lineHeight}" >
+                <!--div class="reader__text textDiv" v-html="currentContent" ref="currentContentContainer"
+                    :style="{'margin-top': -1 * fontSize * lineHeight * activePage.topHiddenLineCount + 'px','height': (contentHeight * 2.0 )  + 'px','letter-spacing' : letterspacing + 'px'}"></div-->
+                <div class="reader__text textDiv" ref="currentContentContainer" 
+                     :style="{'margin-top': -1 * fontSize * lineHeight * activePage.topHiddenLineCount + 'px','height': (contentHeight * 2.0 )  + 'px','letter-spacing' : letterspacing + 'px'}">
+                    <div :page-index="page_index" class="page" 
+                        :count="page_index" v-for="(page, page_index) in item_all_content" 
+                        >
+                        <p v-if="item_page_no.length > 0" class="page_title">{{item_page_no[page_index]}}</p>
+                        <p v-else class="page_title">{{item_page_no[page_index]}}</p>
+                        <p :para-index="parr_index"  v-for="(parr,parr_index) in page" :style="{'line-height' : plineheight + 'px'}">
+                            <!--span v-for="(word, index) in parr"  :word-index=word.index :ner-tag=word.tag>{{word.word}}</span-->
+                            <template v-for="(wordGroup, index) in parrGroup(parr)" >
+                                <template v-if="wordGroup[0].tag == 'PER'">
+                                    <el-popover
+                                        placement="bottom"
+                                        trigger="click"
+                                        :wordIndex=wordGroup[0].index
+                                    >
+                                        <div style="height: 30vh;width: 50vh;overflow: auto;">
+                                            <template v-for="(item, index) in currentSearchLinkData">
+                                                <div>
+                                                    <i class="el-icon-view el-icon--right"></i>
+                                                        <el-link :href=item.title_id 
+                                                            target="_blank" 
+                                                            type="primary"
+                                                        >查看相關條目</el-link>：
+                                                        <div v-html="highlight(item.provenance,wordGroup[0].link_term,item.source_name)"></div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <span slot="reference" class="nertag ner-person" >
+                                            <template v-for="(word,word_index) in wordGroup">
+                                                <span :word-index=word.index :ner-tag=word.tag 
+                                                    v-on:click="getLinkData(word.index)"
+                                                    >{{ word.word }}</span>
+                                            </template>
+                                        </span>
+                                    </el-popover>
+                                </template>
+                                <template v-else-if="wordGroup[0].tag == 'O'">
+                                    <template v-for="word in wordGroup">
+                                        <span :word-index=word.index :ner-tag=word.tag>{{ word.word }}</span>
+                                    </template>
+                                </template>
+                            </template>
+                        </p>                        
+                    </div>
+                </div>
+            </div>   
+            
          </el-main>
       </el-container>
     </div>
         
     <script>
-    
     //將資料暫存  傳到vue上面
-    let _data = <?php echo json_encode($date_objs)?>;
-    console.log(_data)
+    let checkDataEmpty =  <?php echo json_encode($cehckdataempty)?>;
+    console.log(checkDataEmpty);
     let all_data = {}
-    let all_item_list = []
-    for(let a in _data){
-        let item_num = Object.keys(_data[a])[0]
-        console.log(_data[a][item_num])
-        all_item_list.push({'item_id':item_num,'title':_data[a][item_num]['title']});
-        all_data[item_num] = {'id':item_num,'title':_data[a][item_num]['title'],'img':_data[a][item_num]['img'],'pagelist':_data[a][item_num]['pagelist'],'content':_data[a][item_num]['content']}
-    }
-    
-    let current_item = _data[0];
-    
-    let current_item_id = current_item[Object.keys(current_item)]['id'];
+    //all_data[000000] = {'id':0000,'title':'none','img':'none','pagelist':'none','content':'none'};
+    let all_item_list = [];
+    let current_item = '';
+    let current_item_id = '';
     let current_item_author = '';
     let current_item_content = [];
-    let current_item_page = current_item[current_item_id]['pagelist'];
-   
-    //let current_item_content = current_item[Object.keys(current_item)]['content'];
+    let item_content_list = '';
+    let item_img = '';
+    let current_item_page = '';
+        if(checkDataEmpty == false){
+        let _data = <?php echo json_encode($data_objs)?>;
+        all_data = {}
+        all_item_list = []
+        for(let a in _data){
+            let item_num = Object.keys(_data[a])[0]
+            console.log(_data[a][item_num])
+            all_item_list.push({'item_id':item_num,'title':_data[a][item_num]['title']});
+            all_data[item_num] = {'id':item_num,'title':_data[a][item_num]['title'],'img':_data[a][item_num]['img'],'pagelist':_data[a][item_num]['pagelist'],'content':_data[a][item_num]['content']}
+        }
+
+        current_item = _data[0];
+
+        current_item_id = current_item[Object.keys(current_item)]['id'];
+        current_item_author = '';
+        current_item_content = [];
+        item_content_list = current_item[Object.keys(current_item)]['content'];
+        item_img = current_item[Object.keys(current_item)]['img'];
+
+        current_item_page = current_item[current_item_id]['pagelist'];
+        for(let i in item_content_list){
+            current_item_content.push(item_content_list[i]['@value']);
+        }
+    }
+    
     </script>
     <?php echo $this->partial('content-reader/content-reader'); ?>
     
@@ -267,7 +354,7 @@
           cursor: pointer;
           color: red;
         }
-        .ner[ner="per"]{
+        span[ner-tag="PER"]{
           cursor: pointer;
           color: green;
         }
@@ -278,13 +365,17 @@
         .el-header, .el-footer {
           background-color: #272727;
           color: white;
-          text-align: center;
+          text-align: right;
           line-height: 60px;
           margin-bottom: -1%;
           border-radius: 10px;
           height: 70px !important;
           font-size: 28px;
         }
+        #headertitle{
+            position: relative;
+            left: 40vw;
+        }   
         .el-main {
           background-color: #E9EEF3;
           color: #878787;
@@ -335,7 +426,7 @@
             display: inline-block;
             vertical-align: middle;
             margin-bottom: 1%;
-            right: -40%;
+            
             position: relative;
         }
         #item_list .el-drawer.rtl{
