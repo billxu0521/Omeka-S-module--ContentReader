@@ -19,7 +19,10 @@ Usage
 After install module, `ContentReader` will auto show in `item` page.`ContentReader` is a read-tool that has two windows, the right side can be used to view the content, the left side can view the media(\*.png,\*.jpg or \*.pdf).The sort binding of the two windows is through the properties 'content' and the sort of 'media'.It is recommended that the paragraphs of the content of `item` are in the same order as the media of `item`.
 
 * for pages
-you can add new block `ContentReader` in pages setting, ContentReader of page can get all item in your sites.
+You can add new block `ContentReader` in pages setting, ContentReader of page can get all item in your sites.
+
+* Blocks Disposition
+If you use the module Blocks Disposition,you need set string:'ContentReader' in config of Blocks Disposition that `ContentReader` can show correctly.
 
 Warning
 -------
