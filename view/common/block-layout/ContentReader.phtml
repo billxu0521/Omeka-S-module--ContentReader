@@ -67,59 +67,59 @@
        ?>
      <div id="app">
         <el-container  v-if="checkDataEmpty == true"  >
-                      你沒有選擇任何文本。
+            <?= $translate('You did not select any text') ?>
         </el-container>
         <el-container v-loading="loading" v-else-if="checkDataEmpty == false" class="reader__wrapper" :style="{'padding-top': marginGap + 'px'}" >
             <el-header>
                 <span id="headertitle">{{ item_title }}</span>
                 <el-radio-group  fill="#4F4F4F	" id="readermenu" v-model="isCollapse" style="margin-bottom: 1%;">
-                    <el-radio-button :label="true">關閉選單</el-radio-button>
-                    <el-radio-button :label="false">開啟選單</el-radio-button>
+                    <el-radio-button :label="true"><?= $translate('Close Menu')?></el-radio-button>
+                    <el-radio-button :label="false"><?= $translate('Open Menu')?></el-radio-button>
                 </el-radio-group>
-                <el-button @click="drawer = true" id="item_list_btn">目錄</el-button>
+                <el-button @click="drawer = true" id="item_list_btn"><?= $translate('Show Index')?></el-button>
             </el-header>
                                   
         <el-main class="flex">
             <el-menu :default-active="activeIndex" class="el-menu-vertical-demo reader__settings" mode="vertical"  @select="handleSelect" :collapse="isCollapse" collapse-transition>
             <el-submenu index="1">
-                <template slot="title">排版設定</template>
-                <el-menu-item index="1-1">字型大小
+                <template slot="title"><?= $translate('Setting')?></template>
+                <el-menu-item index="1-1"><?= $translate('Font Size') ?>
                     <el-input-number v-model="fontSize" size="small" 
                                      data-bind="" @change="handleChange" :min="8" :max="30">
                     </el-input-number>
                 </el-menu-item>
-                <el-menu-item index="1-2">字距寬度
+                <el-menu-item index="1-2"><?= $translate('Word Spacing') ?>
                     <el-input-number v-model="letterspacing" size="small" 
                                      data-bind="" @change="handleChange" :min="1" :max="10">
                     </el-input-number>
                 </el-menu-item>
-                <el-menu-item index="1-3">行距高度
+                <el-menu-item index="1-3"><?= $translate('Line spacing') ?>
                     <el-input-number v-model="plineheight" size="small" 
                                      data-bind=""@change="handleChange" :min="20" :max="50">
                     </el-input-number>
                 </el-menu-item>
             </el-submenu>
             <el-submenu index="2">
-                <template slot="title">圖片設定</template>
+                <template slot="title"><?= $translate('Image Setting') ?></template>
                 <el-menu-item index="2-1"><el-switch
                     v-model="displayImg"
-                    active-text="顯示圖片"
-                    inactive-text="不顯示圖片">
+                    active-text="<?= $translate('Display') ?>"
+                    inactive-text="<?= $translate('None Display') ?>">
                     </el-switch>
                 </el-menu-item>
             </el-submenu>
             <el-submenu index="3">
-            <template slot="title">啟動人名偵測</template>
+            <template slot="title"><?= $translate('Name Detection') ?></template>
             <el-switch
                 v-model="activeNameLinkData"
-                active-text="啟動"
-                inactive-text="關閉">
+                active-text="<?= $translate('Active') ?>"
+                inactive-text="<?= $translate('Close') ?>">
                 </el-switch>
             </el-menu-item>
         </el-submenu>
         </el-menu >
         <el-drawer
-        title="選擇條目"
+        title="<?= $translate('Choice Item') ?>"
         :visible.sync="drawer"
         :with-header="false"
         :modal="false"
@@ -131,14 +131,14 @@
                 type=index>
                 </el-table-column><el-table-column
                 prop="title"
-                label="標題"></el-table-column>
-                <el-table-column label="操作">
+                label="<?= $translate('Title') ?>"></el-table-column>
+                <el-table-column label="">
                     <template slot="header" slot-scope="scope"><el-input
                           v-model="search"
                           size="mini"
-                          placeholder="输入關鍵詞搜索"/>
+                          placeholder="<?= $translate('Search') ?>"/>
                     </template><template slot-scope="scope">
-                        <el-button type=index @click="select_item(scope.$index, scope.row)">前往</el-button>
+                        <el-button type=index @click="select_item(scope.$index, scope.row)"><?= $translate('Link to') ?></el-button>
                     </template>
                 </el-table-column>            
             </el-table>
@@ -149,7 +149,7 @@
                 </div>
                 <div class="image" v-if="displayPic">
                     <div class="block" style="line-height:0px;">
-                        <div style="color:#878787;font-size: 20px;"><i class="el-icon-zoom-in"></i>滑鼠移到圖片上即可放大檢視</div>
+                        <div style="color:#878787;font-size: 20px;"><i class="el-icon-zoom-in"></i><?= $translate('Mouse on and zoom in') ?></div>
                         <zoom-on-hover :img-normal=imgurl[current_img] :scale=2 ></zoom-on-hover>
                     </div>
                 </div>
@@ -181,7 +181,7 @@
                                                         <el-link :href=item.title_id 
                                                             target="_blank" 
                                                             type="primary"
-                                                        >查看相關條目</el-link>：
+                                                        ><?= $translate('View Item') ?></el-link>：
                                                         <div v-html="highlight(item.provenance,wordGroup[0].link_term,item.source_name)"></div>
                                                 </div>
                                             </template>

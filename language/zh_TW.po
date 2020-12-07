@@ -57,5 +57,18 @@ msgstr "關閉"
 msgid "Mouse on and zoom in"
 msgstr "滑鼠放置圖片上可以放大"
 
-msgid "Check Item"
+msgid "View Item"
 msgstr "查看相關條目"
+
+msgid "You did not select any text"
+msgstr "你沒有選擇任何文本"
+
+msgid "Show Index"
+msgstr "顯示目錄"
+
+msgid "Choice Item"
+msgstr "選擇條目"
+
+msgid "Link to"
+msgstr "前往"
+
